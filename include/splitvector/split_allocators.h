@@ -85,7 +85,7 @@ public:
    pointer address(reference x) const { return &x; }
    const_pointer address(const_reference x) const { return &x; }
 
-   pointer allocate(size_type n, const void* /*hint*/ = 0) {
+   static pointer allocate(size_type n, const void* /*hint*/ = 0) {
       T* ret;
       assert(n && "allocate 0");
       SPLIT_CHECK_ERR(split_gpuMallocManaged((void**)&ret, n * sizeof(value_type)));
@@ -95,21 +95,7 @@ public:
       return ret;
    }
 
-   static void* allocate_raw(size_type n, const void* /*hint*/ = 0) {
-      void* ret;
-      SPLIT_CHECK_ERR(split_gpuMallocManaged((void**)&ret, n));
-      if (ret == nullptr) {
-         throw std::bad_alloc();
-      }
-      return ret;
-   }
-
-   void deallocate(pointer p, size_type n) {
-      if (n != 0 && p != 0) {
-         SPLIT_CHECK_ERR(split_gpuFree(p));
-      }
-   }
-   static void deallocate(void* p, size_type n) {
+   static void deallocate(pointer p, size_type n) {
       if (n != 0 && p != 0) {
          SPLIT_CHECK_ERR(split_gpuFree(p));
       }
@@ -167,25 +153,14 @@ public:
    pointer address(reference x) const { return &x; }
    const_pointer address(const_reference x) const { return &x; }
 
-   pointer allocate(size_type n, const void* /*hint*/ = 0) {
+   static pointer allocate(size_type n, const void* /*hint*/ = 0) {
       pointer const ret = reinterpret_cast<pointer>(malloc(n * sizeof(value_type)));
       if (ret == nullptr) {
          throw std::bad_alloc();
       }
       return ret;
    }
-
-   static void* allocate_raw(size_type n, const void* /*hint*/ = 0) {
-      void* ret = (void*)malloc(n);
-      if (ret == nullptr) {
-         throw std::bad_alloc();
-      }
-      return ret;
-   }
-
-   void deallocate(pointer p, size_type) { free(p); }
-
-   static void deallocate(void* p, size_type) { free(p); }
+   static void deallocate(pointer p, size_type) { free(p); }
 
    size_type max_size() const throw() {
       size_type max = static_cast<size_type>(-1) / sizeof(value_type);
