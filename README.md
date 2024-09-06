@@ -27,6 +27,7 @@ No installation required. Just include  "hashinator.h" . However, if you plan 
 
 ## Run the tests   
 ```
+cd hashinator   
 mkdir subprojects
 meson wrap install gtest 
 meson setup build  --buildtype=release
