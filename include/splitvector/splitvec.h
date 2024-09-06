@@ -48,7 +48,7 @@ using DefaultAllocator = split::split_unified_allocator<T>;
 #define DEVICEONLY
 #define HOSTDEVICE
 template <typename T>
-using DefaultAllocator = split::split_host_allocator<T>;
+using DefaultAllocator = std::allocator<T>;
 #endif
 
 namespace split {
