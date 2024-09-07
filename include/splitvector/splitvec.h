@@ -220,6 +220,9 @@ public:
     * @param size The size of the SplitVector to be created.
     */
    HOSTONLY explicit SplitVector(size_t size) : _allocator(Allocator()),_location(Residency::host), d_vec(nullptr) { this->_allocate(size); }
+   
+   HOSTONLY explicit SplitVector(size_t size,const Allocator& alloc) : _allocator(alloc),_location(Residency::host), d_vec(nullptr) { this->_allocate(size); }
+
 
    /**
     * @brief Constructor to create a SplitVector of a specified size with initial values.
@@ -233,6 +236,13 @@ public:
          _data[i] = val;
       }
    }
+   
+   HOSTONLY explicit SplitVector(size_t size, const T& val,const Allocator& alloc) :_allocator(alloc), _location(Residency::host), d_vec(nullptr) {
+      this->_allocate(size);
+      for (size_t i = 0; i < size; i++) {
+         _data[i] = val;
+      }
+   }
 
    /**
     * @brief Copy constructor to create a SplitVector from another SplitVector.
@@ -240,8 +250,7 @@ public:
     * @param other The SplitVector to be copied.
     */
 #ifdef SPLIT_CPU_ONLY_MODE
-   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other) {
-      _allocator=other._allocator;
+   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
       const size_t size_to_allocate = other.size();
       this->_allocate(size_to_allocate);
       for (size_t i = 0; i < size_to_allocate; i++) {
@@ -250,8 +259,7 @@ public:
    }
 #else
 
-   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other) {
-      _allocator=other._allocator;
+   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
       const size_t size_to_allocate = other.size();
       auto copySafe = [&]() -> void {
          for (size_t i = 0; i < size_to_allocate; i++) {
@@ -731,8 +739,10 @@ public:
       }
       // Nope.
       if (requested_space <= current_space) {
-         for (size_t i = size(); i < requested_space; ++i) {
-            _allocator.construct(&_data[i], T());
+         if constexpr (!std::is_trivial<T>::value) {
+            for (size_t i = size(); i < requested_space; ++i) {
+               _allocator.construct(&_data[i], T());
+            }
          }
          return;
       }
@@ -908,11 +918,11 @@ public:
     * @param newSize The new size of the SplitVector.
     */
    DEVICEONLY
-   void device_resize(size_t newSize, bool construct = true) {
+   void device_resize(size_t newSize,bool _construct=true) {
       if (newSize > capacity()) {
          assert(0 && "Splitvector has a catastrophic failure trying to resize on device.");
       }
-      if (construct) {
+      if (!std::is_trivial<T>::value) {
          for (size_t i = size(); i < newSize; ++i) {
             _allocator.construct(&_data[i], T());
          }
@@ -1551,8 +1561,13 @@ public:
       resize(size() + 1);
       iterator it = &_data[index];
       std::move(it.data(), end().data(), it.data() + 1);
-      _allocator.destroy(it.data());
-      _allocator.construct(it.data(), args...);
+      if constexpr (!std::is_trivial<T>::value) {
+         _allocator.destroy(it.data());
+         _allocator.construct(it.data(), args...);
+      }else{
+         //just forward these guys and assign sinced they are trivial types
+         *it = T(std::forward<Args>(args)...);
+      }
       return it;
    }
 
