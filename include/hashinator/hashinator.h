@@ -117,7 +117,7 @@ public:
 #endif
    };
    
-   Hashmap(const Meta_Allocator& allocator) :_metaAllocator(Meta_Allocator{}) {
+   Hashmap(const Meta_Allocator& allocator) :_metaAllocator(allocator) {
       preallocate_device_handles();
       _mapInfo = _metaAllocator.allocate(1);
       *_mapInfo = MapInfo(5);
