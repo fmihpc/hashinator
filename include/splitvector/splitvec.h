@@ -24,6 +24,7 @@
 #pragma once
 #include "split_allocators.h"
 #include <algorithm>
+#include  <type_traits>
 #include <cassert>
 #include <iostream>
 #include <memory>
@@ -922,7 +923,7 @@ public:
       if (newSize > capacity()) {
          assert(0 && "Splitvector has a catastrophic failure trying to resize on device.");
       }
-      if (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T> ){
          for (size_t i = size(); i < newSize; ++i) {
             _allocator.construct(&_data[i], T());
          }
