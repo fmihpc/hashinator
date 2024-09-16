@@ -286,7 +286,7 @@ TEST(Vector_Functionality , Test_CopyMetaData){
 
 int main(int argc, char* argv[]){
    auto& rm = umpire::ResourceManager::getInstance();
-   umpire::Allocator alloc = rm.getAllocator("UM");
+   umpire::Allocator alloc = rm.getAllocator("MANAGED");
    auto va=umpire::TypedAllocator<int>(alloc);   
    vector_alloc=&va;
    ::testing::InitGoogleTest(&argc, argv);
