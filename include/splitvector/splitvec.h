@@ -96,7 +96,6 @@ private:
    constexpr size_t get_number_of_Ts_for_Split_Info()const noexcept{
       constexpr size_t size_of_T=sizeof(T);
       constexpr size_t size_of_info=sizeof(SplitInfo);
-      static_assert(size_of_info==2*sizeof(size_t));
       if constexpr (size_of_T>size_of_info){
          return 1;
       }

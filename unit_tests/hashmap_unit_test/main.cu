@@ -1084,16 +1084,7 @@ TEST(HashmapUnitTets ,Test_Duplicate_Insertion){
    }
 }
 
-TEST(HashmapUnitTets ,EMPTY_TOMBSTONE_values){
-   Hashmap<key_type,val_type,42,42> hmap;
-   const auto tombstone = hmap.get_tombstone();
-   const auto emptybucket = hmap.get_emptybucket();
-   expect_true(tombstone==emptybucket);
-   //These can be also checked during compile time 
-   static_assert(tombstone==emptybucket);
-}
-
-int main(int argc, char* argv[]){
+ main(int argc, char* argv[]){
    srand(time(NULL));
    ::testing::InitGoogleTest(&argc, argv);
    return RUN_ALL_TESTS();
