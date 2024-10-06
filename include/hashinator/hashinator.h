@@ -45,18 +45,18 @@ namespace Hashinator {
 
 #ifndef HASHINATOR_CPU_ONLY_MODE
 template <typename T>
-using DefaultMetaAllocator = split::split_unified_allocator<T>;
+using DefaultAllocator = split::split_unified_allocator<T>;
 #define DefaultHasher                                                                                                  \
    Hashers::Hasher<KEY_TYPE, VAL_TYPE, HashFunction, EMPTYBUCKET, TOMBSTONE, defaults::WARPSIZE,                       \
                    defaults::elementsPerWarp>
 #else
 template <typename T>
-using DefaultMetaAllocator = split::split_host_allocator<T>;
+using DefaultAllocator = split::split_host_allocator<T>;
 #define DefaultHasher void
 #endif
 
 using MapInfo = Hashinator::Info;
-template <typename KEY_TYPE, typename VAL_TYPE, class Allocator = DefaultMetaAllocator<hash_pair<KEY_TYPE,VAL_TYPE>>,
+template <typename KEY_TYPE, typename VAL_TYPE, class Allocator = DefaultAllocator<hash_pair<KEY_TYPE,VAL_TYPE>>,
           KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1, 
           class HashFunction = HashFunctions::Fibonacci<KEY_TYPE>,class DeviceHasher = DefaultHasher>
 class Hashmap {
@@ -69,7 +69,7 @@ private:
       if constexpr (size_of_T>size_of_info){
          return 1;
       }
-      return size_of_info/size_of_T;
+      return std::ceil(size_of_info/size_of_T);
    }
    
    // CUDA device handle
@@ -116,6 +116,7 @@ private:
    inline void set_status(status code) noexcept { _mapInfo->err = code; }
 
 public:
+   //By default we allocate enough space for 1<<5 elements
    Hashmap():_allocator(Allocator{}) {
       preallocate_device_handles();
       _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
@@ -142,8 +143,8 @@ public:
       _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
       *_mapInfo = MapInfo(sizepower);
       buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
-          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()));
-#ifndef HASHINATOR_CPU_ONLY_MODE
+          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator);
+      #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
 #endif
    };
@@ -180,6 +181,7 @@ public:
 #endif
    };
 
+   //Allocator is not replaces with assignment operation
    Hashmap& operator=(const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& other) {
       if (this == &other) {
          return *this;
@@ -515,7 +517,7 @@ public:
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
    void clear() {
-      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()});
+      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()},_allocator); 
       *_mapInfo = MapInfo(_mapInfo->sizePower);
       return;
    }

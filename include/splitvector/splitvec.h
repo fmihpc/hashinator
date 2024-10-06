@@ -88,7 +88,7 @@ class SplitVector {
 private:
    Allocator _allocator;         // Allocator used to allocate and deallocate memory;
    T* _data = nullptr;           // actual pointer to our data
-   SplitInfo* _info;             // store size and capacity 
+   SplitInfo* _info;             // stores size and capacity 
    size_t _alloc_multiplier = 2; // host variable; multiplier for  when reserving more space
    Residency _location;          // Flags that describes the current residency of our data
    SplitVector* d_vec = nullptr; // device copy pointer
@@ -99,7 +99,7 @@ private:
       if constexpr (size_of_T>size_of_info){
          return 1;
       }
-      return size_of_info/size_of_T;
+      return std::ceil(size_of_info/size_of_T);
    }
 
    /**
@@ -192,7 +192,7 @@ private:
 
 public:
    /* Available Constructors :
-    *    -- SplitVector()                       --> Default constructor. Almost a no OP but _size and _capacity have  to
+    *    -- SplitVector()                       --> Default constructor. Almost a no OP but info->_size and info->_capacity have  to
     * be allocated for device usage.
     *    -- SplitVector(size_t)                 --> Instantiates a splitvector with a specific size. (capacity == size)
     *    -- SplitVector(size_t,T)               --> Instantiates a splitvector with a specific size and sets all
@@ -523,8 +523,8 @@ public:
       int device;
       SPLIT_CHECK_ERR(split_gpuGetDevice(&device));
 
-      // First make sure _capacity does not page-fault ie prefetch it to host
-      // This is done because _capacity would page-fault otherwise as pointed by Markus
+      // First make sure info->_capacity does not page-fault ie prefetch it to host
+      // This is done because info->_capacity would page-fault otherwise as pointed by Markus
       SPLIT_CHECK_ERR(split_gpuMemPrefetchAsync(_info, sizeof(SplitInfo), split_gpuCpuDeviceId, stream));
       SPLIT_CHECK_ERR(split_gpuStreamSynchronize(stream));
       if (_info->capacity == 0) {
@@ -593,12 +593,10 @@ public:
       if (device == -1) {
          SPLIT_CHECK_ERR(split_gpuGetDevice(&device));
       }
-      SPLIT_CHECK_ERR(split_gpuMemPrefetchAsync(&_info->capacity, sizeof(size_t), split_gpuCpuDeviceId, stream));
+      SPLIT_CHECK_ERR(split_gpuMemPrefetchAsync(_info, sizeof(SplitInfo), split_gpuCpuDeviceId, stream));
       SPLIT_CHECK_ERR(split_gpuStreamSynchronize(stream));
       SPLIT_CHECK_ERR(split_gpuMemAdvise(_data, capacity() * sizeof(T), advice, device));
-      SPLIT_CHECK_ERR(split_gpuMemAdvise(&_info->size, sizeof(size_t), advice, device));
-      SPLIT_CHECK_ERR(split_gpuMemAdvise(&_info->capacity, sizeof(size_t), advice, device));
-      SPLIT_CHECK_ERR(split_gpuMemPrefetchAsync(&_info->capacity, sizeof(size_t), device, stream));
+      SPLIT_CHECK_ERR(split_gpuMemAdvise(_info, sizeof(SplitInfo), advice, device));
    }
 #endif
 
@@ -1049,15 +1047,15 @@ public:
     */
    HOSTONLY
    void push_back(const T& val) {
-      // If we have no allocated memory because the default ctor was used then
-      // allocate one element, set it and return
-      // if (_data == nullptr) {
-      //    _allocate(1);
-      //    _data[size() - 1] = val;
-      //    return ;
-      // }
       resize(size() + 1);
       _data[size() - 1] = val;
+      return;
+   }
+   
+   HOSTONLY
+   void push_back_unsafe(const T& val) {
+      _data[size() - 1] = val;
+      _info->size++;
       return;
    }
 
