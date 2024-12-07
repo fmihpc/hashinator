@@ -95,8 +95,7 @@ private:
    void preallocate_device_handles() {
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMalloc((void**)&device_map, sizeof(Hashmap)));
-      device_buckets = reinterpret_cast<split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>*>(
-          reinterpret_cast<char*>(device_map) + offsetof(Hashmap, buckets));
+      device_buckets = &device_map->buckets;
 #endif
    }
 
