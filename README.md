@@ -153,7 +153,7 @@ int main()
 	hmap.insert(src.data(),src.size());
 }
 ```
-Hashinator and SplitVector can also be used with external allocators   
+### Hashinator and SplitVector can also be used with external allocators   
 
 ```c++
 #include "splitvec.h"
