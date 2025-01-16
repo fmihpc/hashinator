@@ -27,9 +27,12 @@ No installation required. Just include  "hashinator.h" . However, if you plan 
 
 ## Run the tests   
 ```
-meson wrap install gtest # skip if you have gtest installed system wide and pkg-config can find it. 
-meson setup build  --buildtype=release 
-meson test -C build --verbose
+cd hashinator   
+mkdir subprojects
+meson wrap install gtest 
+meson setup build  --buildtype=release
+meson compile -C build --jobs=8
+meson test -C build
 ```
 
 ## Example Usage: 
