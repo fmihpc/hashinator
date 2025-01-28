@@ -482,6 +482,13 @@ public:
       }
       return buckets.data();
    }
+   template <bool warn = true>
+   HASHINATOR_HOSTDEVICE const hash_pair<KEY_TYPE, VAL_TYPE>* expose_bucketdata() const noexcept {
+      if constexpr(warn) {
+         printf("Warning, exposing Hashmap internal bucket data!\n");
+      }
+      return buckets.data();
+   }
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
    void clear() {
