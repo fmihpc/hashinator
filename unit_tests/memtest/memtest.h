@@ -1,36 +1,45 @@
-#include "submodules/hashinator/include/splitvector/splitvec.h"
-#include "submodules/hashinator/include/hashinator/hashinator.h"
+#include <iostream>
+#include <stdlib.h>
+//#include <chrono>
+#include "../../include/splitvector/splitvec.h"
+#include "../../include/splitvector/split_tools.h"
+#include <gtest/gtest.h>
 
 #define CHK_ERR(err) (cuda_error(err, __FILE__, __LINE__))
 
-struct testStructure {
-   split::SplitVector<uint> splitVec;
+typedef split::SplitVector<int,split::split_unified_allocator<int>> vec ;
 
-   testStructure(size_t initSize) {
-      splitVec.resize(initSize);
-   }
-   size_t capacity() {
-      return splitVec.capacity();
-   }
-   size_t size() {
-      return splitVec.size();
-   }
+
+struct testStructure {
+   testStructure(const size_t initSize=100) {
+      std::cerr<<"a"<<std::endl;
+      testContent = vec(initSize);
+      std::cerr<<"b"<<std::endl;
+   };
+   size_t capacity() const {
+      return testContent.capacity();
+   };
+   size_t size() const {
+      return testContent.size();
+   };
    void shrink_to_fit() {
-      splitVec.shrink_to_fit();
-   }
+      testContent.shrink_to_fit();
+   };
    void shrink_to_fit_2() {
-      split::SplitVector<uint> splitVec_new(size());
-      splitVec_new.overwrite(splitVec);
-      splitVec.swap(splitVec_new);
-   }
+      vec testContent_new(size());
+      testContent_new.overwrite(testContent);
+      testContent.swap(testContent_new);
+   };
    void recapacitate(size_t newCapacity) {
-      splitVec.reserve(newCapacity,true);
-   }  
+      testContent.reserve(newCapacity,true);
+   }; 
    void resize(size_t newSize) {
-      splitVec.resize(newSize);
-   }  
-   int capacityInBytes() {
-      return splitVEc.capacity() * sizeof(uint);
-   }
+      testContent.resize(newSize);
+   }; 
+   size_t capacityInBytes() const {
+      return testContent.capacity() * sizeof(uint);
+   };
+
+   vec testContent;
 };
 
