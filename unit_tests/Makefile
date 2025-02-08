@@ -7,7 +7,7 @@ EXTRA=  --std=c++17
 EXTRA+= -gencode arch=compute_60,code=sm_60  
 EXTRA+=  -DHASHMAPDEBUG --expt-relaxed-constexpr  --expt-extended-lambda -lpthread
 GTEST= -L/home/kstppd/libs/googletest/build/lib  -I/home/kstppd/libs/googletest/googletest/include -lgtest -lgtest_main -lpthread
-OBJ= gtest_vec_host.o	gtest_vec_device.o  gtest_hashmap.o stream_compaction.o stream_compaction2.o delete_mechanism.o insertion_mechanism.o hybrid_cpu.o hybrid_gpu.o pointer_test.o benchmark.o benchmarkLF.o tbPerf.o realistic.o preallocated.o
+OBJ= gtest_vec_host.o	gtest_vec_device.o  gtest_hashmap.o stream_compaction.o stream_compaction2.o delete_mechanism.o insertion_mechanism.o hybrid_cpu.o hybrid_gpu.o pointer_test.o benchmark.o benchmarkLF.o tbPerf.o realistic.o preallocated.o memtest.o
 
 
 default: tests
@@ -31,7 +31,8 @@ allclean:
 	rm benchmark_hashinator_lf &
 	rm benchmark_hashinator_tb &
 	rm benchmark_hashinator_rl &
-	rm insertion
+	rm insertion &
+	rm memtest
 
 gtest_hashmap.o: hashmap_unit_test/main.cu
 	${CC} ${CXXFLAGS} ${OPT} ${EXTRA} ${GTEST}  -o gtest_hashmap hashmap_unit_test/main.cu
@@ -56,6 +57,9 @@ gtest_vec_device.o: gtest_vec_device/vec_test.cu
 
 stream_compaction.o: stream_compaction/race.cu
 	${CC} ${CXXFLAGS} ${OPT} ${EXTRA} ${GTEST} -o compaction stream_compaction/race.cu
+
+memtest.o: memtest/racememtest.cpp
+	${CC} ${CXXFLAGS} ${OPT} ${EXTRA} ${GTEST} -o memtest memtest/memtest.cppls
 
 preallocated.o: stream_compaction/preallocated.cu
 	${CC} --default-stream per-thread  ${CXXFLAGS} ${OPT} ${EXTRA} ${GTEST}  -o compaction3 stream_compaction/preallocated.cu
