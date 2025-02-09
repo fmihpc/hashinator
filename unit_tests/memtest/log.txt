@@ -1,0 +1,487 @@
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Test_GPU
+[ RUN      ] Test_GPU.Memory
+ ==================================
+ GPU Memory: base usage is 0 Mbytes
+ ==================================
+ ==================================
+ GPU Memory report
+   objects size:            80 Mbytes
+   objects capacity:        80 Mbytes
+   Reported Hardware use:   645 Mbytes
+ ==================================
+============  CYCLE 0 ===============
+ recapacitate 0
+ ==================================
+ GPU Memory report
+   objects size:            80 Mbytes
+   objects capacity:        80 Mbytes
+   Reported Hardware use:   645 Mbytes
+ ==================================
+ resize 0
+ ==================================
+ GPU Memory report
+   objects size:            79 Mbytes
+   objects capacity:        80 Mbytes
+   Reported Hardware use:   645 Mbytes
+ ==================================
+ resize down 0
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        80 Mbytes
+   Reported Hardware use:   645 Mbytes
+ ==================================
+ shrink_to_fit 1 0
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        0 Mbytes
+   Reported Hardware use:   565 Mbytes
+ ==================================
+
+
+ resize again 0
+ ==================================
+ GPU Memory report
+   objects size:            79 Mbytes
+   objects capacity:        159 Mbytes
+   Reported Hardware use:   693 Mbytes
+ ==================================
+ resize down again 0
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        159 Mbytes
+   Reported Hardware use:   693 Mbytes
+ ==================================
+ shrink_to_fit 2 0
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        159 Mbytes
+   Reported Hardware use:   693 Mbytes
+ ==================================
+============  CYCLE 1 ===============
+ recapacitate 1
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        160 Mbytes
+   Reported Hardware use:   789 Mbytes
+ ==================================
+ resize 1
+ ==================================
+ GPU Memory report
+   objects size:            159 Mbytes
+   objects capacity:        160 Mbytes
+   Reported Hardware use:   789 Mbytes
+ ==================================
+ resize down 1
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        160 Mbytes
+   Reported Hardware use:   789 Mbytes
+ ==================================
+ shrink_to_fit 1 1
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        0 Mbytes
+   Reported Hardware use:   629 Mbytes
+ ==================================
+
+
+ resize again 1
+ ==================================
+ GPU Memory report
+   objects size:            159 Mbytes
+   objects capacity:        319 Mbytes
+   Reported Hardware use:   885 Mbytes
+ ==================================
+ resize down again 1
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        319 Mbytes
+   Reported Hardware use:   885 Mbytes
+ ==================================
+ shrink_to_fit 2 1
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        319 Mbytes
+   Reported Hardware use:   885 Mbytes
+ ==================================
+============  CYCLE 2 ===============
+ recapacitate 2
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        320 Mbytes
+   Reported Hardware use:   949 Mbytes
+ ==================================
+ resize 2
+ ==================================
+ GPU Memory report
+   objects size:            319 Mbytes
+   objects capacity:        320 Mbytes
+   Reported Hardware use:   949 Mbytes
+ ==================================
+ resize down 2
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        320 Mbytes
+   Reported Hardware use:   949 Mbytes
+ ==================================
+ shrink_to_fit 1 2
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        0 Mbytes
+   Reported Hardware use:   629 Mbytes
+ ==================================
+
+
+ resize again 2
+ ==================================
+ GPU Memory report
+   objects size:            319 Mbytes
+   objects capacity:        639 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+ resize down again 2
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        639 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+ shrink_to_fit 2 2
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        639 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+============  CYCLE 3 ===============
+ recapacitate 3
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        640 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+ resize 3
+ ==================================
+ GPU Memory report
+   objects size:            639 Mbytes
+   objects capacity:        640 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+ resize down 3
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        640 Mbytes
+   Reported Hardware use:   1269 Mbytes
+ ==================================
+ shrink_to_fit 1 3
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        0 Mbytes
+   Reported Hardware use:   629 Mbytes
+ ==================================
+
+
+ resize again 3
+ ==================================
+ GPU Memory report
+   objects size:            639 Mbytes
+   objects capacity:        1279 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+ resize down again 3
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        1279 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+ shrink_to_fit 2 3
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        1279 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+============  CYCLE 4 ===============
+ recapacitate 4
+ ==================================
+ GPU Memory report
+   objects size:            0 Mbytes
+   objects capacity:        1280 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+ resize 4
+ ==================================
+ GPU Memory report
+   objects size:            1279 Mbytes
+   objects capacity:        1280 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+ resize down 4
+ ==================================
+ GPU Memory report
+   objects size:            1 Mbytes
+   objects capacity:        1280 Mbytes
+   Reported Hardware use:   1909 Mbytes
+ ==================================
+ shrink_to_fit 1 4
+ ==================================
+ GPU Memory report
+   objects size:            1 Mbytes
+   objects capacity:        1 Mbytes
+   Reported Hardware use:   629 Mbytes
+ ==================================
+
+
+ resize again 4
+ ==================================
+ GPU Memory report
+   objects size:            1279 Mbytes
+   objects capacity:        2559 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+ resize down again 4
+ ==================================
+ GPU Memory report
+   objects size:            1 Mbytes
+   objects capacity:        2559 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+ shrink_to_fit 2 4
+ ==================================
+ GPU Memory report
+   objects size:            1 Mbytes
+   objects capacity:        2559 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+============  CYCLE 5 ===============
+ recapacitate 5
+ ==================================
+ GPU Memory report
+   objects size:            1 Mbytes
+   objects capacity:        2560 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+ resize 5
+ ==================================
+ GPU Memory report
+   objects size:            2559 Mbytes
+   objects capacity:        2560 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+ resize down 5
+ ==================================
+ GPU Memory report
+   objects size:            2 Mbytes
+   objects capacity:        2560 Mbytes
+   Reported Hardware use:   3189 Mbytes
+ ==================================
+ shrink_to_fit 1 5
+ ==================================
+ GPU Memory report
+   objects size:            2 Mbytes
+   objects capacity:        2 Mbytes
+   Reported Hardware use:   629 Mbytes
+ ==================================
+
+
+ resize again 5
+ ==================================
+ GPU Memory report
+   objects size:            2559 Mbytes
+   objects capacity:        5119 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+ resize down again 5
+ ==================================
+ GPU Memory report
+   objects size:            2 Mbytes
+   objects capacity:        5119 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+ shrink_to_fit 2 5
+ ==================================
+ GPU Memory report
+   objects size:            2 Mbytes
+   objects capacity:        5119 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+============  CYCLE 6 ===============
+ recapacitate 6
+ ==================================
+ GPU Memory report
+   objects size:            2 Mbytes
+   objects capacity:        5120 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+ resize 6
+ ==================================
+ GPU Memory report
+   objects size:            5119 Mbytes
+   objects capacity:        5120 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+ resize down 6
+ ==================================
+ GPU Memory report
+   objects size:            5 Mbytes
+   objects capacity:        5120 Mbytes
+   Reported Hardware use:   5747 Mbytes
+ ==================================
+ shrink_to_fit 1 6
+ ==================================
+ GPU Memory report
+   objects size:            5 Mbytes
+   objects capacity:        5 Mbytes
+   Reported Hardware use:   627 Mbytes
+ ==================================
+
+
+ resize again 6
+ ==================================
+ GPU Memory report
+   objects size:            5119 Mbytes
+   objects capacity:        10239 Mbytes
+   Reported Hardware use:   6033 Mbytes
+ ==================================
+ resize down again 6
+ ==================================
+ GPU Memory report
+   objects size:            5 Mbytes
+   objects capacity:        10239 Mbytes
+   Reported Hardware use:   6033 Mbytes
+ ==================================
+ shrink_to_fit 2 6
+ ==================================
+ GPU Memory report
+   objects size:            5 Mbytes
+   objects capacity:        10239 Mbytes
+   Reported Hardware use:   6033 Mbytes
+ ==================================
+============  CYCLE 7 ===============
+ recapacitate 7
+ ==================================
+ GPU Memory report
+   objects size:            5 Mbytes
+   objects capacity:        10240 Mbytes
+   Reported Hardware use:   6017 Mbytes
+ ==================================
+ resize 7
+ ==================================
+ GPU Memory report
+   objects size:            10239 Mbytes
+   objects capacity:        10240 Mbytes
+   Reported Hardware use:   6017 Mbytes
+ ==================================
+ resize down 7
+ ==================================
+ GPU Memory report
+   objects size:            10 Mbytes
+   objects capacity:        10240 Mbytes
+   Reported Hardware use:   6017 Mbytes
+ ==================================
+ shrink_to_fit 1 7
+ ==================================
+ GPU Memory report
+   objects size:            10 Mbytes
+   objects capacity:        10 Mbytes
+   Reported Hardware use:   655 Mbytes
+ ==================================
+
+
+ resize again 7
+ ==================================
+ GPU Memory report
+   objects size:            10239 Mbytes
+   objects capacity:        20479 Mbytes
+   Reported Hardware use:   6027 Mbytes
+ ==================================
+ resize down again 7
+ ==================================
+ GPU Memory report
+   objects size:            10 Mbytes
+   objects capacity:        20479 Mbytes
+   Reported Hardware use:   6027 Mbytes
+ ==================================
+ shrink_to_fit 2 7
+ ==================================
+ GPU Memory report
+   objects size:            10 Mbytes
+   objects capacity:        20479 Mbytes
+   Reported Hardware use:   6027 Mbytes
+ ==================================
+============  CYCLE 8 ===============
+ recapacitate 8
+ ==================================
+ GPU Memory report
+   objects size:            10 Mbytes
+   objects capacity:        20480 Mbytes
+   Reported Hardware use:   6009 Mbytes
+ ==================================
+ resize 8
+ ==================================
+ GPU Memory report
+   objects size:            20479 Mbytes
+   objects capacity:        20480 Mbytes
+   Reported Hardware use:   6009 Mbytes
+ ==================================
+ resize down 8
+ ==================================
+ GPU Memory report
+   objects size:            20 Mbytes
+   objects capacity:        20480 Mbytes
+   Reported Hardware use:   6009 Mbytes
+ ==================================
+ shrink_to_fit 1 8
+ ==================================
+ GPU Memory report
+   objects size:            20 Mbytes
+   objects capacity:        20 Mbytes
+   Reported Hardware use:   661 Mbytes
+ ==================================
+
+
+ resize again 8
+ ==================================
+ GPU Memory report
+   objects size:            20479 Mbytes
+   objects capacity:        40959 Mbytes
+   Reported Hardware use:   6019 Mbytes
+ ==================================
+ resize down again 8
+ ==================================
+ GPU Memory report
+   objects size:            20 Mbytes
+   objects capacity:        40959 Mbytes
+   Reported Hardware use:   6019 Mbytes
+ ==================================
+ shrink_to_fit 2 8
+ ==================================
+ GPU Memory report
+   objects size:            20 Mbytes
+   objects capacity:        40959 Mbytes
+   Reported Hardware use:   6019 Mbytes
+ ==================================
+[       OK ] Test_GPU.Memory (61310 ms)
+[----------] 1 test from Test_GPU (61310 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (61310 ms total)
+[  PASSED  ] 1 test.

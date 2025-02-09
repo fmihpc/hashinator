@@ -12,9 +12,8 @@ typedef split::SplitVector<int,split::split_unified_allocator<int>> vec ;
 
 struct testStructure {
    testStructure(const size_t initSize=100) {
-      std::cerr<<"a"<<std::endl;
       testContent = vec(initSize);
-      std::cerr<<"b"<<std::endl;
+      testContent.optimizeGPU();
    };
    size_t capacity() const {
       return testContent.capacity();
@@ -32,12 +31,17 @@ struct testStructure {
    };
    void recapacitate(size_t newCapacity) {
       testContent.reserve(newCapacity,true);
+      testContent.optimizeGPU();
    }; 
    void resize(size_t newSize) {
       testContent.resize(newSize);
+      testContent.optimizeGPU();
    }; 
    size_t capacityInBytes() const {
-      return testContent.capacity() * sizeof(uint);
+      return testContent.capacity() * sizeof(int);
+   };
+   size_t sizeInBytes() const {
+      return testContent.size() * sizeof(int);
    };
 
    vec testContent;
