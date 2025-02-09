@@ -281,11 +281,11 @@ public:
     */
    HOSTONLY SplitVector(SplitVector<T, Allocator>&& other) noexcept {
       _data = other._data;
-      *_size = other.size();
-      *_capacity = other.capacity();
-      *(other._capacity) = 0;
-      *(other._size) = 0;
+      _size = other._size;
+      _capacity = other._capacity;
       other._data = nullptr;
+      other._size = nullptr;
+      other._capacity = nullptr;
       _location = other._location;
       d_vec = nullptr;
    }
@@ -421,11 +421,11 @@ public:
 
       _deallocate_and_destroy(capacity(), _data);
       _data = other._data;
-      *_size = other.size();
-      *_capacity = other.capacity();
-      *(other._capacity) = 0;
-      *(other._size) = 0;
+      _size = other._size;
+      _capacity = other._capacity;
       other._data = nullptr;
+      other._size = nullptr;
+      other._capacity = nullptr;
       _location = other._location;
       d_vec = nullptr;
       return *this;
