@@ -604,9 +604,6 @@ public:
     * are invalidated after swap is called.
     */
    void swap(SplitVector<T, Allocator>& other) noexcept {
-      if (*this == other) { // no need to do any work
-         return;
-      }
       split::swap(_data, other._data);
       split::swap(_info, other._info);
       split::swap(_allocator, other._allocator);
