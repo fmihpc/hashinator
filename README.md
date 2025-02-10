@@ -153,6 +153,45 @@ int main()
 	hmap.insert(src.data(),src.size());
 }
 ```
+### Hashinator and SplitVector can also be used with external allocators   
+
+```c++
+#include "splitvec.h"
+//main.cu
+using vector = split::SplitVector<int,std::allocator<int>>;
+
+
+int main()
+{
+	vector* vec = new vector{1,2,3,4,5};
+	vec->reserve(128);
+	std::cout<<vec[3]<<std::endl;
+	delete vec;
+}
+```
+
+```c++
+//main.cpp
+#include "hashinator.h"
+
+int main()
+{
+
+   Hashmap<uint32_t,uint32_t,std::allocator<uint32_t>> hmap;
+
+   //Write
+   for (uint32_t i=0 ; i<64; ++i){
+      hmap[i]=rand()%10000;
+   }
+
+   //Read
+   for (const auto& i:hmap){
+      std::cout<<"["<<i.first<<" "<<i.second<<"] ";
+   }
+   std::cout<<std::endl;
+}
+```
+
 `nvcc   main.cu  -std=c++17  --expt-relaxed-constexpr --expt-extended-lambda -gencode arch=compute_80,code=sm_80 -o example`
 
 You can have a look in the Doxygen for a more feature-rich explanation of the methods and tools included!   

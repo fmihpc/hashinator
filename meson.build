@@ -5,8 +5,9 @@ add_global_arguments('-DHASHMAPDEBUG', language : 'cpp')
 add_global_arguments('-DHASHMAPDEBUG', language : 'cuda')
 add_project_arguments(['--expt-relaxed-constexpr','--expt-extended-lambda' ], language: 'cuda')
 
-#Dependencies
+ #Dependencies
 gtest_dep = dependency('gtest', fallback : ['gtest', 'gtest_dep'])
+umpire_dep = dependency('umpire' ,required:false)
 
 #Limit register usage in debug builds
 if ( get_option('buildtype') == 'debug')
@@ -31,8 +32,16 @@ tombstoneTest = executable('tbPerf', 'unit_tests/benchmark/tbPerf.cu', dependenc
 realisticTest = executable('realistic', 'unit_tests/benchmark/realistic.cu', dependencies :gtest_dep)
 hybridGPU = executable('hybrid_gpu', 'unit_tests/hybrid/main.cu',dependencies :gtest_dep )
 
+if umpire_dep.found()
+  hashinator_umpire_unit = executable('hashmap_umpire_test', 'unit_tests/umpire_tests/hashinator.cu',dependencies :[umpire_dep,gtest_dep])
+  splitvector_host_umpire_unit = executable('splitvector_host_umpire_test', 'unit_tests/umpire_tests/vec_host.cu',dependencies :[umpire_dep,gtest_dep] )
+  splitvector_device_umpire_unit = executable('splitvector_device_umpire_test', 'unit_tests/umpire_tests/vec_device.cu',dependencies :[umpire_dep,gtest_dep])
+  test('HashinatorTestUmpire', hashinator_umpire_unit)
+  test('SplitVectorUmpireHost', splitvector_host_umpire_unit)
+  test('SplitVectorUmpireDevice', splitvector_device_umpire_unit)
+endif
 
-#Test-Runner
+#Test-Runners
 test('HashinatorTest', hashinator_unit)
 test('SplitVectorDeviceTest', splitvector_device_unit)
 test('SplitVectorHostTest', splitvector_host_unit)
