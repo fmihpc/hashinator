@@ -32,11 +32,11 @@ struct testStructure {
    void recapacitate(size_t newCapacity) {
       testContent.reserve(newCapacity,true);
       testContent.optimizeGPU();
-   }; 
+   };
    void resize(size_t newSize) {
-      testContent.resize(newSize);
+      testContent.resize(newSize,true);
       testContent.optimizeGPU();
-   }; 
+   };
    size_t capacityInBytes() const {
       return testContent.capacity() * sizeof(int);
    };
@@ -46,4 +46,3 @@ struct testStructure {
 
    vec testContent;
 };
-

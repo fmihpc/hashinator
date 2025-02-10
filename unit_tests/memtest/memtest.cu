@@ -13,7 +13,7 @@ void gpu_reportMemory(const std::vector<testStructure> &objs) {
       o_size += (objs.at(i)).sizeInBytes();
       o_cap += (objs.at(i)).capacityInBytes();
    }
-   
+
    size_t free_byte ;
    size_t total_byte ;
    SPLIT_CHECK_ERR( cudaMemGetInfo( &free_byte, &total_byte) );
@@ -27,7 +27,7 @@ void gpu_reportMemory(const std::vector<testStructure> &objs) {
       std::cerr<<" =================================="<<std::endl;
       return;
    }
-   int64_t int_used_mb = (int64_t)used_mb - (int64_t)base_usage;    
+   int64_t int_used_mb = (int64_t)used_mb - (int64_t)base_usage;
    std::cerr<<" =================================="<<std::endl;
    std::cerr<<" GPU Memory report"<<std::endl;
    std::cerr<<"   objects size:            "<<o_size/(1024*1024)<<" Mbytes"<<std::endl;
@@ -45,7 +45,7 @@ TEST(Test_GPU,Memory) {
    std::vector<testStructure> storage;
 
    gpu_reportMemory(storage);
-   
+
    //SPLIT_CHECK_ERR( gpuGetDevice(&myDevice) );
    for (uint i=0; i<n_objs; ++i) {
       storage.push_back(testStructure(1024*1024));
@@ -60,22 +60,24 @@ TEST(Test_GPU,Memory) {
 
       if (n_objs * newSize > mem_limit) {
          break;
-      }   
+      }
+      std::cerr<<std::endl<<std::endl;
+      std::cerr<<std::endl<<std::endl;
       std::cerr<<"============  CYCLE "<<j<<" ==============="<<std::endl;
 
-
+/*
       std::cerr<<" recapacitate "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].recapacitate(newSize);
       }
       gpu_reportMemory(storage);
-      
+
       std::cerr<<" resize "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].resize(newSize-1);
       }
       gpu_reportMemory(storage);
-      
+
       std::cerr<<" resize down "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].resize(newSize/1024);
@@ -89,12 +91,18 @@ TEST(Test_GPU,Memory) {
       gpu_reportMemory(storage);
 
       std::cerr<<std::endl<<std::endl;
+*/
+      std::cerr<<" recapacitate again "<<j<<std::endl;
+      for (uint i=0; i<n_objs; ++i) {
+         storage[i].recapacitate(newSize);
+      }
+      gpu_reportMemory(storage);
 
       std::cerr<<" resize again "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].resize(newSize-1);
       }
-      gpu_reportMemory(storage);      
+      gpu_reportMemory(storage);
       std::cerr<<" resize down again "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].resize(newSize/1024);
@@ -103,6 +111,7 @@ TEST(Test_GPU,Memory) {
       std::cerr<<" shrink_to_fit 2 "<<j<<std::endl;
       for (uint i=0; i<n_objs; ++i) {
          storage[i].shrink_to_fit_2();
+         //storage[i].shrink_to_fit();
       }
       gpu_reportMemory(storage);
 }
@@ -114,4 +123,3 @@ __host__ int main(int argc, char* argv[]) {
    ::testing::InitGoogleTest(&argc, argv);
    return RUN_ALL_TESTS();
 }
-
