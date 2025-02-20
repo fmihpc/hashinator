@@ -281,11 +281,11 @@ public:
     */
    HOSTONLY SplitVector(SplitVector<T, Allocator>&& other) noexcept {
       _data = other._data;
-      *_size = other.size();
-      *_capacity = other.capacity();
-      *(other._capacity) = 0;
-      *(other._size) = 0;
+      _size = other._size;
+      _capacity = other._capacity;
       other._data = nullptr;
+      other._size = nullptr;
+      other._capacity = nullptr;
       _location = other._location;
       d_vec = nullptr;
    }
@@ -377,8 +377,9 @@ public:
       if (this == &other) {
          return;
       }
-      // Match other's size and capacity prior to copying
+      // Match other's size and minimum required capacity prior to copying
       resize(other.size(), true, stream);
+
       auto copySafe = [&]() -> void {
          for (size_t i = 0; i < size(); i++) {
             _data[i] = other._data[i];
@@ -420,14 +421,21 @@ public:
       }
 
       _deallocate_and_destroy(capacity(), _data);
+#ifndef SPLIT_CPU_ONLY_MODE
+      if (d_vec) {
+         SPLIT_CHECK_ERR(split_gpuFree(d_vec));
+      }
+#endif
+
       _data = other._data;
-      *_size = other.size();
-      *_capacity = other.capacity();
-      *(other._capacity) = 0;
-      *(other._size) = 0;
-      other._data = nullptr;
+      _size = other._size;
+      _capacity = other._capacity;
+      d_vec = other.d_vec;
       _location = other._location;
-      d_vec = nullptr;
+
+      other._data = nullptr;
+      other._size = nullptr;
+      other._capacity = nullptr;
       return *this;
    }
 
@@ -598,9 +606,6 @@ public:
     * are invalidated after swap is called.
     */
    void swap(SplitVector<T, Allocator>& other) noexcept {
-      if (*this == other) { // no need to do any work
-         return;
-      }
       split::swap(_data, other._data);
       split::swap(_size, other._size);
       split::swap(_capacity, other._capacity);
