@@ -1059,14 +1059,6 @@ public:
     */
    HOSTONLY
    void push_back(const T&& val) {
-
-      // If we have no allocated memory because the default ctor was used then
-      // allocate one element, set it and return
-      // if (_data == nullptr) {
-      //    _allocate(1);
-      //    _data[size() - 1] = val;
-      //    return;
-      // }
       resize(size() + 1);
       _data[size() - 1] = std::move(val);
       return;

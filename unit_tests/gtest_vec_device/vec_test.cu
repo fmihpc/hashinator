@@ -509,7 +509,6 @@ void gpu_reportMemory(const std::vector<testStructure> &objs) {
 TEST(Test_GPU,Memory) {
    //int myDevice;
    const int n_objs = 20;
-   const int n_loops = 27; 
 
    std::vector<testStructure> storage;
 

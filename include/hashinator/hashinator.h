@@ -95,7 +95,7 @@ private:
    void preallocate_device_handles() {
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMalloc((void**)&device_map, sizeof(Hashmap)));
-      device_buckets = &device_map->buckets;
+      device_buckets = &(device_map->buckets);
 #endif
    }
 
@@ -115,7 +115,7 @@ private:
    inline void set_status(status code) noexcept { _mapInfo->err = code; }
 
 public:
-   //By default we allocate enough space for 1<<5 elements
+   //By default we allocate enough space for 1<<5 (32) elements
    Hashmap():_allocator(Allocator{}) {
       preallocate_device_handles();
       _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
@@ -322,9 +322,12 @@ public:
 
       size_t priorFill = _mapInfo->fill;
       // Extract all valid elements
-      hash_pair<KEY_TYPE, VAL_TYPE>* validElements;
-      SPLIT_CHECK_ERR(split_gpuMallocAsync((void**)&validElements,
-                                           (_mapInfo->fill + 1) * sizeof(hash_pair<KEY_TYPE, VAL_TYPE>), s));
+      hash_pair<KEY_TYPE, VAL_TYPE>* validElements=nullptr;
+      const std::size_t alloc_size=_mapInfo->fill+1;
+      validElements=_allocator.allocate(alloc_size);
+      if (!validElements){
+         throw std::runtime_error("ERORR: Failed to allocate temporary buffer in device rehash");
+      }
       if constexpr (prefetches) {
          optimizeGPU(s);
          SPLIT_CHECK_ERR(split_gpuStreamSynchronize(s));
@@ -346,7 +349,7 @@ public:
       if (newSizePower == _mapInfo->sizePower && nValidElements == 0) {
          clear<prefetches>(targets::device, s, 1 << newSizePower);
          set_status((priorFill == _mapInfo->fill) ? status::success : status::fail);
-         split_gpuFreeAsync(validElements, s);
+         _allocator.deallocate(validElements,alloc_size); 
          return;
       }
       if (newSizePower == _mapInfo->sizePower) {
@@ -364,7 +367,7 @@ public:
       // Insert valid elements to now larger buckets
       insert(validElements, nValidElements, 1, s);
       set_status((priorFill == _mapInfo->fill) ? status::success : status::fail);
-      split_gpuFreeAsync(validElements, s);
+      _allocator.deallocate(validElements,alloc_size); 
       return;
    }
 #endif
@@ -1335,10 +1338,12 @@ public:
       // Allocate memory for overflown elements. So far this is the same size as our buckets but we can be better than
       // this
 
-      hash_pair<KEY_TYPE, VAL_TYPE>* overflownElements;
-      SPLIT_CHECK_ERR(split_gpuMallocAsync((void**)&overflownElements,
-                                           (1 << _mapInfo->sizePower) * sizeof(hash_pair<KEY_TYPE, VAL_TYPE>), s));
-
+      hash_pair<KEY_TYPE, VAL_TYPE>* overflownElements=nullptr;
+      const std::size_t alloc_size=_mapInfo->fill+1;
+      overflownElements=_allocator.allocate(alloc_size);
+      if (!overflownElements){
+         throw std::runtime_error("ERORR: Failed to allocate temporary buffer in tombstone cleaning");
+      }
       if constexpr (prefetches) {
          optimizeGPU(s);
       }
@@ -1366,7 +1371,7 @@ public:
       _mapInfo->currentMaxBucketOverflow = defaults::BUCKET_OVERFLOW;
 
       if (nOverflownElements == 0) {
-         SPLIT_CHECK_ERR(split_gpuFreeAsync(overflownElements, s));
+         _allocator.deallocate(overflownElements,alloc_size);
          return;
       }
       // If we do have overflown elements we put them back in the buckets
@@ -1375,7 +1380,7 @@ public:
 
       DeviceHasher::insert(overflownElements, buckets.data(), _mapInfo, nOverflownElements, s);
 
-      SPLIT_CHECK_ERR(split_gpuFreeAsync(overflownElements, s));
+      _allocator.deallocate(overflownElements,alloc_size);
       return;
    }
 
