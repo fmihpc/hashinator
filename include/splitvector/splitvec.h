@@ -415,6 +415,7 @@ public:
 
    /**
     * @brief Move assignment operator to move from another SplitVector.
+    * Supported only for vectors of same Allocator type
     *
     * @param other The SplitVector to move from.
     * @return Reference to the moved SplitVector.
