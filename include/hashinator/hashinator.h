@@ -95,7 +95,8 @@ private:
    void preallocate_device_handles() {
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMalloc((void**)&device_map, sizeof(Hashmap)));
-      device_buckets = &(device_map->buckets);
+      device_buckets = reinterpret_cast<split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>*>(
+          reinterpret_cast<char*>(device_map) + offsetof(Hashmap, buckets));
 #endif
    }
 
@@ -1488,9 +1489,9 @@ public:
       if constexpr (prefetches) {
          optimizeGPU(stream);
       }
-      // device_buckets = (split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>*)((char*)device_map + offsetof(Hashmap,
-      // buckets)); SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice,
-      // stream));
+      device_buckets = (split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>, Allocator>*)((char*)device_map +
+                                                                                       offsetof(Hashmap, buckets));
+      SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice, stream));
       return device_map;
    }
 
