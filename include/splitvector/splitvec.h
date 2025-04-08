@@ -424,8 +424,8 @@ public:
       if (this == &other) {
          return *this;
       }
-      _allocator.deallocate(reinterpret_cast<T*>(_info),get_number_of_Ts_for_Split_Info());
       _deallocate_and_destroy(capacity(), _data);
+      _allocator.deallocate(reinterpret_cast<T*>(_info),get_number_of_Ts_for_Split_Info());
       _data = other._data;
       _info = other._info;
       other._data = nullptr;
