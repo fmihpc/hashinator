@@ -732,7 +732,7 @@ public:
       }
       // Nope.
       if (requested_space <= current_space) {
-         if constexpr (!std::is_trivial<T>::value) {
+         if constexpr (!std::is_trivially_copy_constructible_v<T>) {
             for (size_t i = size(); i < requested_space; ++i) {
                _allocator.construct(&_data[i], T());
             }
@@ -965,7 +965,7 @@ public:
    HOSTDEVICE
    void remove_from_back(size_t n) noexcept {
       const size_t end = size() - n;
-      if constexpr (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T>) {
          for (auto i = size(); i > end;) {
             (_data + --i)->~T();
          }
@@ -978,7 +978,7 @@ public:
     */
    HOSTDEVICE
    void clear() noexcept {
-      if constexpr (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T>) {
          for (size_t i = 0; i < size(); i++) {
             _data[i].~T();
          }
@@ -1478,7 +1478,7 @@ public:
    HOSTDEVICE
    iterator erase(iterator it) noexcept {
       const int64_t index = it.data() - begin().data();
-      if constexpr (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T>) {
          _data[index].~T();
          for (size_t i = index; i < size() - 1; i++) {
             new (&_data[i]) T(_data[i + 1]);
@@ -1508,7 +1508,7 @@ public:
       const int64_t range = end - start;
 
       const size_t sz = size();
-      if constexpr (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T>) {
          for (int64_t i = start; i < end; i++) {
             _data[i].~T();
          }
@@ -1546,7 +1546,7 @@ public:
       resize(size() + 1);
       iterator it = &_data[index];
       std::move(it.data(), end().data(), it.data() + 1);
-      if constexpr (!std::is_trivial<T>::value) {
+      if constexpr (!std::is_trivially_copy_constructible_v<T>) {
          _allocator.destroy(it.data());
          _allocator.construct(it.data(), args...);
       }else{

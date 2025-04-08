@@ -51,7 +51,7 @@ using DefaultAllocator = split::split_unified_allocator<T>;
                    defaults::elementsPerWarp>
 #else
 template <typename T>
-using DefaultAllocator = split::split_host_allocator<T>;
+using DefaultAllocator = std::allocator<T>;
 #define DefaultHasher void
 #endif
 
