@@ -88,18 +88,18 @@ class SplitVector {
 private:
    Allocator _allocator;         // Allocator used to allocate and deallocate memory;
    T* _data = nullptr;           // actual pointer to our data
-   SplitInfo* _info = nullptr;   // stores size and capacity
+   SplitInfo* _info;             // stores size and capacity 
    size_t _alloc_multiplier = 2; // host variable; multiplier for  when reserving more space
    Residency _location;          // Flags that describes the current residency of our data
    SplitVector* d_vec = nullptr; // device copy pointer
 
-   constexpr size_t get_number_of_Ts_for_Split_Info() const noexcept {
-      constexpr size_t size_of_T = sizeof(T);
-      constexpr size_t size_of_info = sizeof(SplitInfo);
-      if constexpr (size_of_T >= size_of_info) {
+   constexpr size_t get_number_of_Ts_for_Split_Info()const noexcept{
+      constexpr size_t size_of_T=sizeof(T);
+      constexpr size_t size_of_info=sizeof(SplitInfo);
+      if constexpr (size_of_T>size_of_info){
          return 1;
       }
-      return (size_of_info + size_of_T - 1) / size_of_T;
+      return std::ceil(size_of_info/size_of_T);
    }
 
    /**
@@ -250,7 +250,7 @@ public:
     * @param other The SplitVector to be copied.
     */
 #ifdef SPLIT_CPU_ONLY_MODE
-   HOSTONLY SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
+   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
       const size_t size_to_allocate = other.size();
       this->_allocate(size_to_allocate);
       for (size_t i = 0; i < size_to_allocate; i++) {
@@ -259,7 +259,7 @@ public:
    }
 #else
 
-   HOSTONLY SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
+   HOSTONLY explicit SplitVector(const SplitVector<T, Allocator>& other):_allocator(other._allocator) {
       const size_t size_to_allocate = other.size();
       auto copySafe = [&]() -> void {
          for (size_t i = 0; i < size_to_allocate; i++) {
@@ -424,7 +424,7 @@ public:
       if (this == &other) {
          return *this;
       }
-      _allocator.deallocate(reinterpret_cast<T*>(_info),get_number_of_Ts_for_Split_Info());
+
       _deallocate_and_destroy(capacity(), _data);
       _data = other._data;
       _info = other._info;
@@ -731,7 +731,7 @@ public:
       }
       // Nope.
       if (requested_space <= current_space) {
-         if constexpr (!std::is_trivially_copyable<T>::value) {
+         if constexpr (!std::is_trivial<T>::value) {
             for (size_t i = size(); i < requested_space; ++i) {
                _allocator.construct(&_data[i], T());
             }
@@ -964,7 +964,7 @@ public:
    HOSTDEVICE
    void remove_from_back(size_t n) noexcept {
       const size_t end = size() - n;
-      if constexpr (!std::is_trivially_copyable<T>::value) {
+      if constexpr (!std::is_trivial<T>::value) {
          for (auto i = size(); i > end;) {
             (_data + --i)->~T();
          }
@@ -977,7 +977,7 @@ public:
     */
    HOSTDEVICE
    void clear() noexcept {
-      if constexpr (!std::is_trivially_copyable<T>::value) {
+      if constexpr (!std::is_trivial<T>::value) {
          for (size_t i = 0; i < size(); i++) {
             _data[i].~T();
          }
@@ -1477,7 +1477,7 @@ public:
    HOSTDEVICE
    iterator erase(iterator it) noexcept {
       const int64_t index = it.data() - begin().data();
-      if constexpr (!std::is_trivially_copyable<T>::value) {
+      if constexpr (!std::is_trivial<T>::value) {
          _data[index].~T();
          for (size_t i = index; i < size() - 1; i++) {
             new (&_data[i]) T(_data[i + 1]);
@@ -1507,7 +1507,7 @@ public:
       const int64_t range = end - start;
 
       const size_t sz = size();
-      if constexpr (!std::is_trivially_copyable<T>::value) {
+      if constexpr (!std::is_trivial<T>::value) {
          for (int64_t i = start; i < end; i++) {
             _data[i].~T();
          }
@@ -1545,7 +1545,7 @@ public:
       resize(size() + 1);
       iterator it = &_data[index];
       std::move(it.data(), end().data(), it.data() + 1);
-      if constexpr (!std::is_trivially_copyable<T>::value) {
+      if constexpr (!std::is_trivial<T>::value) {
          _allocator.destroy(it.data());
          _allocator.construct(it.data(), args...);
       }else{
