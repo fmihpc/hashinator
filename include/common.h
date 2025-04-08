@@ -76,6 +76,8 @@ inline bool isDeviceAccessible(void* ptr){
     }
     return true;
 #endif
+  //CPU code here always false
+  return false;
 }
 
 /**
