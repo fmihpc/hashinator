@@ -1818,22 +1818,27 @@ public:
    }
 
    HASHINATOR_DEVICEONLY
-   std::optional<std::reference_wrapper<const VAL_TYPE>> read_element(const KEY_TYPE& key) const {
-   int bitMask = (1 << _mapInfo->sizePower) - 1;
-   auto hashIndex = hash(key);
-   const size_t bsize = buckets.size();
-   for (size_t i = 0; i < bsize; i++) {
-       uint32_t vecindex = (hashIndex + i) & bitMask;
-       const hash_pair<KEY_TYPE, VAL_TYPE>& candidate = buckets[vecindex];
-       if (candidate.first == key) {
-           return candidate.second; 
-       }
-       if (candidate.first == EMPTYBUCKET) {
-           return std::nullopt; 
-       }
+   const VAL_TYPE& read_element(const KEY_TYPE& key) const {
+      int bitMask = (1 << _mapInfo->sizePower) - 1; // For efficient modulo of the array size
+      auto hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      const size_t bsize = buckets.size();
+      for (size_t i = 0; i < bsize; i++) {
+         uint32_t vecindex = (hashIndex + i) & bitMask;
+         const hash_pair<KEY_TYPE, VAL_TYPE>& candidate = buckets[vecindex];
+         if (candidate.first == key) {
+            // Found a match, return that
+            return candidate.second;
+         }
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket, so error.
+            assert(false && "Key does not exist");
+         }
+      }
+      assert(false && "Key does not exist");
    }
-   return std::nullopt;
-}
+
 #else
 
    // Uses Hasher's insert_kernel to insert all elements
