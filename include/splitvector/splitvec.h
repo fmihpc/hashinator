@@ -24,7 +24,6 @@
 #pragma once
 #include "split_allocators.h"
 #include <algorithm>
-#include  <type_traits>
 #include <cassert>
 #include <iostream>
 #include <memory>
