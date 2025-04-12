@@ -191,7 +191,7 @@ private:
 
 public:
    /* Available Constructors :
-    *    -- SplitVector()                       --> Default constructor. Almost a no OP but info->_size and info->_capacity have  to
+    *    -- SplitVector()                       --> Default constructor. 
     * be allocated for device usage.
     *    -- SplitVector(size_t)                 --> Instantiates a splitvector with a specific size. (capacity == size)
     *    -- SplitVector(size_t,T)               --> Instantiates a splitvector with a specific size and sets all
