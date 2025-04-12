@@ -84,11 +84,13 @@ private:
    //~Host members
 
    // Wrapper over available hash functions
+public:
    HASHINATOR_HOSTDEVICE
    uint32_t hash(KEY_TYPE in) const {
       static_assert(std::is_arithmetic<KEY_TYPE>::value);
       return HashFunction::_hash(in, _mapInfo->sizePower);
    }
+private:
 
    // Used by the constructors. Preallocates the device pointer and bookeepping info for later use on device.
    // This helps in reducing the number of calls to split_gpuMalloc
@@ -512,6 +514,13 @@ public:
    }
    template <bool warn = true>
    HASHINATOR_HOSTDEVICE hash_pair<KEY_TYPE, VAL_TYPE>* expose_bucketdata() noexcept {
+      if constexpr(warn) {
+         printf("Warning, exposing Hashmap internal bucket data!\n");
+      }
+      return buckets.data();
+   }
+   template <bool warn = true>
+   HASHINATOR_HOSTDEVICE const hash_pair<KEY_TYPE, VAL_TYPE>* expose_bucketdata() const noexcept {
       if constexpr(warn) {
          printf("Warning, exposing Hashmap internal bucket data!\n");
       }

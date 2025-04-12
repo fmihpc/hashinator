@@ -382,8 +382,9 @@ public:
       if (this == &other) {
          return;
       }
-      // Match other's size and capacity prior to copying
+      // Match other's size and minimum required capacity prior to copying
       resize(other.size(), true, stream);
+
       auto copySafe = [&]() -> void {
          for (size_t i = 0; i < size(); i++) {
             _data[i] = other._data[i];
@@ -430,8 +431,16 @@ public:
       _info = other._info;
       other._data = nullptr;
       other._info = nullptr;
+#ifndef SPLIT_CPU_ONLY_MODE
+      if (d_vec) {
+         SPLIT_CHECK_ERR(split_gpuFree(d_vec));
+      }
+#endif
       _location = other._location;
-      d_vec = nullptr;
+
+      other._data = nullptr;
+      other._size = nullptr;
+      other._capacity = nullptr;
       return *this;
    }
 

@@ -105,7 +105,7 @@
 #define split_gpuDeviceReset hipDeviceReset
 #define split_gpuFree hipFree
 #define split_gpuFreeHost hipHostFree
-#define split_gpuFreeAsync hipFreeAsync
+#define split_gpuFreeAsync(ptr,stream) hipFree(ptr)
 #define split_gpuMalloc hipMalloc
 #define split_gpuMallocHost hipHostMalloc
 #define split_gpuMallocAsync hipMallocAsync
