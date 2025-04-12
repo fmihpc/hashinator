@@ -581,7 +581,7 @@ public:
     * @param s The GPU stream to perform the copy on.
     */
    HOSTONLY void copyMetadata(SplitInfo* dst, split_gpuStream_t s = 0) {
-      SPLIT_CHECK_ERR(split_gpuMemcpyAsync(&dst->size, _info, sizeof(SplitInfo), split_gpuMemcpyDeviceToHost, s));
+      SPLIT_CHECK_ERR(split_gpuMemcpyAsync(dst, _info, sizeof(SplitInfo), split_gpuMemcpyDeviceToHost, s));
    }
 
    /**
