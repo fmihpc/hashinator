@@ -437,10 +437,6 @@ public:
       }
 #endif
       _location = other._location;
-
-      other._data = nullptr;
-      other._size = nullptr;
-      other._capacity = nullptr;
       return *this;
    }
 
