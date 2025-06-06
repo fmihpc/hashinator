@@ -7,7 +7,7 @@ add_project_arguments(['--expt-relaxed-constexpr','--expt-extended-lambda' ], la
 
  #Dependencies
 gtest_dep = dependency('gtest', fallback : ['gtest', 'gtest_dep'])
-umpire_dep = dependency('umpire' ,required:false)
+umpire_dep = meson.get_compiler('cuda').find_library('umpire' ,required:false)
 
 #Limit register usage in debug builds
 if ( get_option('buildtype') == 'debug')
