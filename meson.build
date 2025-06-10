@@ -33,9 +33,9 @@ realisticTest = executable('realistic', 'unit_tests/benchmark/realistic.cu', dep
 hybridGPU = executable('hybrid_gpu', 'unit_tests/hybrid/main.cu',dependencies :gtest_dep )
 
 if umpire_dep.found()
-  hashinator_umpire_unit = executable('hashmap_umpire_test', 'unit_tests/umpire_tests/hashinator.cu',dependencies :[umpire_dep,gtest_dep])
-  splitvector_host_umpire_unit = executable('splitvector_host_umpire_test', 'unit_tests/umpire_tests/vec_host.cu',dependencies :[umpire_dep,gtest_dep] )
-  splitvector_device_umpire_unit = executable('splitvector_device_umpire_test', 'unit_tests/umpire_tests/vec_device.cu',dependencies :[umpire_dep,gtest_dep])
+  hashinator_umpire_unit = executable('hashmap_umpire_test', 'unit_tests/umpire_tests/hashinator.cu',dependencies :[umpire_dep,gtest_dep],link_args:'-lcamp')
+  splitvector_host_umpire_unit = executable('splitvector_host_umpire_test', 'unit_tests/umpire_tests/vec_host.cu',dependencies :[umpire_dep,gtest_dep] ,link_args:'-lcamp')
+  splitvector_device_umpire_unit = executable('splitvector_device_umpire_test', 'unit_tests/umpire_tests/vec_device.cu',dependencies :[umpire_dep,gtest_dep],link_args:'-lcamp')
   test('HashinatorTestUmpire', hashinator_umpire_unit)
   test('SplitVectorUmpireHost', splitvector_host_umpire_unit)
   test('SplitVectorUmpireDevice', splitvector_device_umpire_unit)

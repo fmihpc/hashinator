@@ -985,7 +985,7 @@ TEST(HashmapUnitTets ,Test_Duplicate_Insertion){
 
  main(int argc, char* argv[]){
    auto& rm = umpire::ResourceManager::getInstance();
-   umpire::Allocator alloc = rm.getAllocator("MANAGED");
+   umpire::Allocator alloc = rm.getAllocator("UM");
    auto v1=umpire::TypedAllocator<key_type>(alloc);   
    auto v2=umpire::TypedAllocator<hash_pair<key_type,val_type >>(alloc);   
    vector_key_alloc=&v1;

@@ -131,7 +131,7 @@ public:
    };
    
    Hashmap(const Allocator& allocator):buckets(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
-          1 << 5, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator)),_allocator(allocator){
+          1 << 5, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),allocator)),_allocator(allocator){
       preallocate_device_handles();
       _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
       *_mapInfo = MapInfo(5);
@@ -150,7 +150,7 @@ public:
       SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
 #endif
    };
-   
+
    Hashmap(int sizepower,const Allocator& allocator):buckets(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
           1 << sizepower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),allocator)),_allocator(allocator){
       preallocate_device_handles();
