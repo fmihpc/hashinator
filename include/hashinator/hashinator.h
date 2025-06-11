@@ -74,7 +74,6 @@ private:
    
    // CUDA device handle
    Hashmap* device_map;
-   split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>* device_buckets;
    //~CUDA device handle
 
    // Host members
@@ -97,8 +96,6 @@ private:
    void preallocate_device_handles() {
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMalloc((void**)&device_map, sizeof(Hashmap)));
-      device_buckets = reinterpret_cast<split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>*>(
-          reinterpret_cast<char*>(device_map) + offsetof(Hashmap, buckets));
 #endif
    }
 
@@ -110,7 +107,6 @@ private:
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuFree(device_map));
       device_map = nullptr;
-      device_buckets = nullptr;
 #endif
    }
 
@@ -669,7 +665,6 @@ public:
       buckets.swap(other.buckets);
       std::swap(_mapInfo, other._mapInfo);
       std::swap(device_map, other.device_map);
-      std::swap(device_buckets, other.device_buckets);
    }
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
@@ -1234,7 +1229,7 @@ public:
                            split_gpuStream_t s = 0) {
       // Extract elements matching the Pattern Rule(element)==true;
       split::tools::copy_if_loop<hash_pair<KEY_TYPE, VAL_TYPE>, Rule, defaults::MAX_BLOCKSIZE, defaults::WARPSIZE>(
-          *device_buckets, elements, rule, s);
+          device_map->buckets, elements, rule, s);
    }
    void extractLoop(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>& elements, split_gpuStream_t s = 0) {
       // Extract all valid elements
@@ -1308,7 +1303,7 @@ public:
    void extractKeysByPatternLoop(split::SplitVector<KEY_TYPE>& elements, Rule rule, split_gpuStream_t s = 0) {
       // Extract element **keys** matching the Pattern Rule(element)==true;
       split::tools::copy_if_keys_loop<hash_pair<KEY_TYPE, VAL_TYPE>, KEY_TYPE, Rule, defaults::MAX_BLOCKSIZE,
-                                      defaults::WARPSIZE>(*device_buckets, elements, rule, s);
+                                      defaults::WARPSIZE>(device_map->buckets, elements, rule, s);
    }
 
    template <bool prefetches = true>
@@ -1498,8 +1493,6 @@ public:
       if constexpr (prefetches) {
          optimizeGPU(stream);
       }
-      device_buckets = (split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>, Allocator>*)((char*)device_map +
-                                                                                       offsetof(Hashmap, buckets));
       SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice, stream));
       return device_map;
    }
