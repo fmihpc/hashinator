@@ -85,31 +85,22 @@ public:
    pointer address(reference x) const { return &x; }
    const_pointer address(const_reference x) const { return &x; }
 
-   pointer allocate(size_type n, const void* /*hint*/ = 0) {
+   static pointer allocate(size_type n, const void* /*hint*/ = 0) {
       T* ret;
       assert(n && "allocate 0");
       SPLIT_CHECK_ERR(split_gpuMallocManaged((void**)&ret, n * sizeof(value_type)));
       if (ret == nullptr) {
          throw std::bad_alloc();
       }
+      #if defined(__HIP__) && !defined(AMD_COHERENCE_FINE)
+      int device;
+      SPLIT_CHECK_ERR(split_gpuGetDevice(&device));
+      SPLIT_CHECK_ERR(split_gpuMemAdvise(ret, n * sizeof(value_type), hipMemAdviseSetCoarseGrain, device));
+      #endif
       return ret;
    }
 
-   static void* allocate_raw(size_type n, const void* /*hint*/ = 0) {
-      void* ret;
-      SPLIT_CHECK_ERR(split_gpuMallocManaged((void**)&ret, n));
-      if (ret == nullptr) {
-         throw std::bad_alloc();
-      }
-      return ret;
-   }
-
-   void deallocate(pointer p, size_type n) {
-      if (n != 0 && p != 0) {
-         SPLIT_CHECK_ERR(split_gpuFree(p));
-      }
-   }
-   static void deallocate(void* p, size_type n) {
+   static void deallocate(pointer p, size_type n) {
       if (n != 0 && p != 0) {
          SPLIT_CHECK_ERR(split_gpuFree(p));
       }
@@ -127,76 +118,5 @@ public:
 
    void destroy(pointer p) { p->~value_type(); }
 };
-
 #endif
-
-/**
- * @brief Custom allocator for host memory.
- *
- * This class provides an allocator for host memory, which can be accessed
- * by the CPU. It allocates and deallocates memory using malloc and free functions,
- * while also providing constructors and destructors for objects.
- *
- * @tparam T Type of the allocated objects.
- */
-template <class T>
-class split_host_allocator {
-public:
-   typedef T value_type;
-   typedef value_type* pointer;
-   typedef const value_type* const_pointer;
-   typedef value_type& reference;
-   typedef const value_type& const_reference;
-   typedef ptrdiff_t difference_type;
-   typedef size_t size_type;
-   template <class U>
-   struct rebind {
-      typedef split_host_allocator<U> other;
-   };
-
-   /**
-    * @brief Default constructor.
-    */
-   split_host_allocator() throw() {}
-
-   /**
-    * @brief Copy constructor with different type.
-    */
-   template <class U>
-   split_host_allocator(split_host_allocator<U> const&) throw() {}
-   pointer address(reference x) const { return &x; }
-   const_pointer address(const_reference x) const { return &x; }
-
-   pointer allocate(size_type n, const void* /*hint*/ = 0) {
-      pointer const ret = reinterpret_cast<pointer>(malloc(n * sizeof(value_type)));
-      if (ret == nullptr) {
-         throw std::bad_alloc();
-      }
-      return ret;
-   }
-
-   static void* allocate_raw(size_type n, const void* /*hint*/ = 0) {
-      void* ret = (void*)malloc(n);
-      if (ret == nullptr) {
-         throw std::bad_alloc();
-      }
-      return ret;
-   }
-
-   void deallocate(pointer p, size_type) { free(p); }
-
-   static void deallocate(void* p, size_type) { free(p); }
-
-   size_type max_size() const throw() {
-      size_type max = static_cast<size_type>(-1) / sizeof(value_type);
-      return (max > 0 ? max : 1);
-   }
-
-   template <typename U, typename... Args>
-   void construct(U* p, Args&&... args) {
-      ::new (p) U(std::forward<Args>(args)...);
-   }
-
-   void destroy(pointer p) { p->~value_type(); }
-};
 } // namespace split

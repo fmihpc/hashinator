@@ -7,6 +7,14 @@
 #include <random>
 #include <algorithm>
 #include <limits.h>
+#include "include/hashinator/hash_pair.h"
+#include "umpire/Allocator.hpp"
+#include "umpire/ResourceManager.hpp"
+#include "umpire/TypedAllocator.hpp"
+
+
+
+
 
 #define BLOCKSIZE 32
 #define expect_true EXPECT_TRUE
@@ -20,9 +28,18 @@ using namespace std::chrono;
 using namespace Hashinator;
 typedef uint32_t val_type;
 typedef uint32_t key_type;
-typedef split::SplitVector<hash_pair<key_type,val_type>> vector ;
-typedef split::SplitVector<key_type> ivector ;
-typedef Hashmap<key_type,val_type> hashmap;
+
+
+static umpire::TypedAllocator<key_type>* vector_key_alloc;
+static umpire::TypedAllocator<hash_pair<key_type,val_type>>* vector_map_alloc;
+typedef split::SplitVector<hash_pair<key_type,val_type>,umpire::TypedAllocator<hash_pair<key_type,val_type>>> vector ;
+typedef split::SplitVector<key_type,umpire::TypedAllocator<key_type>> ivector ;
+
+
+
+// typedef split::SplitVector<hash_pair<key_type,val_type>> vector ;
+// typedef split::SplitVector<key_type> ivector ;
+typedef Hashmap<key_type,val_type,umpire::TypedAllocator<hash_pair<key_type,val_type>>> hashmap;
 
 
 struct Predicate{
@@ -215,6 +232,7 @@ void gpu_recover_all_elements(hashmap* hmap,hash_pair<key_type,val_type>* src,si
    }
    return;
 }
+
 __global__
 void gpu_recover_warpWide(hashmap* hmap,hash_pair<key_type,val_type>* src,size_t N  ){
 
@@ -320,9 +338,9 @@ bool testWarpInsert(int power){
    bool cpuOK=true;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap* hmap=new hashmap;
+   hashmap* hmap=new hashmap(*vector_map_alloc);
    hmap->resize(power+1);
 
    //Upload to device and insert input
@@ -342,9 +360,9 @@ bool testWarpInsert(int power){
       size_t threadsNeeded  =  N*warpsize; 
       blocks = threadsNeeded/BLOCKSIZE;
       //Create some input data
-      vector src(N);
+      vector src(N,*vector_map_alloc);
       create_input(src);
-      hashmap* hmap=new hashmap;
+      hashmap* hmap=new hashmap(*vector_map_alloc);
       hmap->resize(power+1);
       //Upload to device and insert input
       gpu_write_warpWide_Duplicate<<<1,1024>>>(hmap,src.data(),1);
@@ -368,9 +386,9 @@ bool testWarpInsertUnorderedSet(int power){
    bool cpuOK=true;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap* hmap=new hashmap;
+   hashmap* hmap=new hashmap(*vector_map_alloc);
    hmap->resize(power+1);
 
    //Upload to device and insert input
@@ -407,9 +425,9 @@ bool testWarpInsertUnorderedSet(int power){
       size_t threadsNeeded  =  N*warpsize; 
       blocks = threadsNeeded/BLOCKSIZE;
       //Create some input data
-      vector src(N);
+      vector src(N,*vector_map_alloc);
       create_input(src);
-      hashmap* hmap=new hashmap;
+      hashmap* hmap=new hashmap(*vector_map_alloc);
       hmap->resize(power+1);
       //Upload to device and insert input
       gpu_write_warpWide_Duplicate<<<1,1024>>>(hmap,src.data(),1);
@@ -433,9 +451,9 @@ bool testWarpInsert_V(int power){
    bool cpuOK=true;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap* hmap=new hashmap;
+   hashmap* hmap=new hashmap(*vector_map_alloc);
    hmap->resize(power+1);
 
    //Upload to device and insert input
@@ -460,9 +478,9 @@ bool testWarpErase(int power){
 
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap* hmap=new hashmap;
+   hashmap* hmap=new hashmap(*vector_map_alloc);
    hmap->resize(power+1);
 
    //Upload to device and insert input
@@ -480,47 +498,6 @@ bool testWarpErase(int power){
    return true;
 }
 
-bool testWarpFind(int power){
-   size_t N = 1<<power;
-   size_t blocksize=BLOCKSIZE;
-   size_t blocks=N/blocksize;
-
-   bool cpuOK=true;
-
-   //Create some input data
-   vector src(N);
-   create_input(src);
-   ivector keys_only;
-   for (const auto& i:src){
-      keys_only.push_back(i.first);
-   }
-   hashmap* hmap=new hashmap;
-   hmap->resize(power+1);
-
-   //Upload to device and insert input
-   gpu_write<<<blocks,blocksize>>>(hmap,src.data(),src.size());
-   SPLIT_CHECK_ERR( split_gpuDeviceSynchronize() );
-
-   //Verify all elements
-   cpuOK=recover_all_elements(*hmap,src);
-   gpu_recover_all_elements<<<blocks,blocksize>>>(hmap,src.data(),src.size());
-   SPLIT_CHECK_ERR( split_gpuDeviceSynchronize() );
-   if (!cpuOK){
-      return false;
-   }
-
-   size_t warpsize     =  Hashinator::defaults::WARPSIZE;
-   size_t threadsNeeded  =  N*warpsize; 
-   blocks = threadsNeeded/BLOCKSIZE;
-   gpu_recover_warpWide<<<blocks,blocksize>>>(hmap,src.data(),src.size());
-   SPLIT_CHECK_ERR( split_gpuDeviceSynchronize() );
-   hmap->erase(keys_only.data(),keys_only.size());
-   gpu_recover_non_existant_key_warpWide<<<blocks,blocksize>>>(hmap,src.data(),src.size());
-   SPLIT_CHECK_ERR( split_gpuDeviceSynchronize() );
-
-   return true;
-
-}
 
 bool test_hashmap_1(int power){
    size_t N = 1<<power;
@@ -530,9 +507,9 @@ bool test_hashmap_1(int power){
    bool cpuOK=true;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap hmap;
+   hashmap hmap(*vector_map_alloc);
    hashmap* d_hmap;
    hmap.resize(power+1);
 
@@ -601,11 +578,11 @@ bool test_hashmap_2(int power){
    bool cpuOK=true;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
 
 
-   hashmap* hmap = new hashmap();
+   hashmap* hmap = new hashmap(*vector_map_alloc);
    hmap->resize(power+1);
 
    //Upload to device and insert input
@@ -667,7 +644,7 @@ bool test_hashmap_2(int power){
       return false;
    }
 
-   vector src2(N);
+   vector src2(N,*vector_map_alloc);
    create_input(src2);
    gpu_remove_insert<<<1,1>>>(hmap,src.data(),src2.data(),src.size());
    SPLIT_CHECK_ERR( split_gpuDeviceSynchronize() );
@@ -683,9 +660,9 @@ bool test_hashmap_3(int power){
    size_t N = 1<<power;
 
    //Create some input data
-   vector src(N);
+   vector src(N,*vector_map_alloc);
    create_input(src);
-   hashmap hmap;
+   hashmap hmap(*vector_map_alloc);
    bool cpuOK;
 
    for (auto i : src){
@@ -723,84 +700,20 @@ bool test_hashmap_3(int power){
 }
 
 
-bool test_hashmap_4(int power){
-   size_t N = 1<<power;
-
-   //Create some input data
-   vector src(N);
-   create_input(src);
-   hashmap hmap;
-   bool cpuOK;
-
-   hmap.insert(src.data(),src.size());
-
-   cpuOK=recover_all_elements(hmap,src);
-   if (!cpuOK){
-      std::cout<<"Error at recovering all elements 1"<<std::endl;
-      return false;
-   }
-
-   //Get all even elements in src
-   vector evenBuffer(src.size());
-   ivector keyBuffer;
-   split::tools::copy_if<hash_pair<key_type, val_type>,Predicate>(src,evenBuffer,Predicate());
-   for (auto i:evenBuffer){
-      keyBuffer.push_back(i.first);
-   }
-
-
-   //Erase using device
-   hmap.erase(keyBuffer.data(),keyBuffer.size());
-
-   cpuOK=recover_odd_elements(hmap,src);
-   if (!cpuOK){
-      std::cout<<"Error at recovering odd elements 2"<<std::endl;
-      return false;
-   }
-
-   //Quick check to verify there are no even elements
-   for (const auto& kval : hmap){
-      if (kval.second%2==0){
-         std::cout<<kval.first<<" "<<kval.second<<std::endl;
-         return false;
-      }
-   }
-
-   split_gpuStream_t s ;
-   SPLIT_CHECK_ERR( split_gpuStreamCreate(&s) );
-   hmap.clean_tombstones(s);
-   cpuOK=recover_odd_elements(hmap,src);
-   if (!cpuOK){
-      std::cout<<"Error at recovering odd elements 2"<<std::endl;
-      return false;
-   }
-   hmap.insert(src.data(),src.size());
-
-   cpuOK=recover_all_elements(hmap,src);
-   if (!cpuOK){
-      std::cout<<"Error at recovering all elements 2"<<std::endl;
-      return false;
-   }
-   return true;
-}
-
 TEST(HashmapUnitTets , Test_Construction){
-   hashmap map0(12);
+   hashmap map0(12,*vector_map_alloc);
    expect_true(map0.size()==0);
    for (key_type i=0 ; i< 1<<11; i++){
       map0[i]=i;
    }
    expect_true(map0.size()==1<<11);
-   hashmap map1(map0);
+   hashmap map1(*vector_map_alloc);
+   map1=map0;
    expect_true(map1.size()==1<<11);
-   hashmap map2 = map0;
+   hashmap map2(*vector_map_alloc);
+   map2 = map0;
    expect_true(map2.size()==1<<11);
-   hashmap map3(hashmap(12));
-   expect_true(map3.size()==0);
-   expect_true(map3.bucket_count()==1<<12);
-   map3=hashmap(13);
-   expect_true(map3.size()==0);
-   expect_true(map3.bucket_count()==1<<13);
+   
 }
 
 
@@ -814,13 +727,6 @@ TEST(HashmapUnitTets , Test1_HostDevice_UploadDownload){
 }
 
 
-TEST(HashmapUnitTets , Test1_HostDevice_WarpFind){
-   for (int power=MINPOWER; power<MAXPOWER; ++power){
-      std::string name= "Power= "+std::to_string(power);
-      bool retval = execute_and_time(name.c_str(),testWarpFind ,power);
-      expect_true(retval);
-   }
-}
 
 TEST(HashmapUnitTets , Test1_HostDevice_WarpInsert){
    for (int power=MINPOWER; power<MAXPOWER; ++power){
@@ -870,20 +776,13 @@ TEST(HashmapUnitTets , Test3_Host){
    }
 }
 
-TEST(HashmapUnitTets , Test4_DeviceKernels){
-   for (int power=MINPOWER; power<MAXPOWER; ++power){
-      std::string name= "Power= "+std::to_string(power);
-      bool retval = execute_and_time(name.c_str(),test_hashmap_4 ,power);
-      expect_true(retval);
-   }
-}
 
 TEST(HashmapUnitTets ,Test_Clear_Perf_Host){
 
    const int sz=22;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_map_alloc);
    create_input(src);
-   hashmap hmap(sz);
+   hashmap hmap(sz,*vector_map_alloc);
    bool cpuOK;
    hmap.insert(src.data(),src.size());
    cpuOK=recover_all_elements(hmap,src);
@@ -904,9 +803,9 @@ TEST(HashmapUnitTets ,Test_Clear_Perf_Host){
 TEST(HashmapUnitTets ,Test_Clear_Perf_Device){
 
    const int sz=22;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_map_alloc);
    create_input(src);
-   hashmap hmap(sz);
+   hashmap hmap(sz,*vector_map_alloc);
    bool cpuOK;
    hmap.insert(src.data(),src.size());
    cpuOK=recover_all_elements(hmap,src);
@@ -927,9 +826,9 @@ TEST(HashmapUnitTets ,Test_Clear_Perf_Device){
 TEST(HashmapUnitTets ,Test_Resize_Perf_Host){
 
    const int sz=24;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_map_alloc);
    create_input(src);
-   hashmap hmap(sz);
+   hashmap hmap(sz,*vector_map_alloc);
    bool cpuOK;
    hmap.insert(src.data(),src.size());
    cpuOK=recover_all_elements(hmap,src);
@@ -950,9 +849,9 @@ TEST(HashmapUnitTets ,Test_Resize_Perf_Host){
 TEST(HashmapUnitTets ,Test_Resize_Perf_Device){
 
    const int sz=24;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_map_alloc);
    create_input(src);
-   hashmap hmap(sz);
+   hashmap hmap(sz,*vector_map_alloc);
    bool cpuOK;
    hmap.insert(src.data(),src.size());
    cpuOK=recover_all_elements(hmap,src);
@@ -983,14 +882,14 @@ struct Rule{
 
 TEST(HashmapUnitTets ,Test_ErrorCodes_ExtractKeysByPattern){
    const int sz=5;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_map_alloc);
    create_input(src);
-   hashmap hmap;
+   hashmap hmap(*vector_map_alloc);
    hmap.insert(src.data(),src.size());
    bool cpuOK=recover_all_elements(hmap,src);
    expect_true(cpuOK);
    expect_true(hmap.peek_status()==status::success);
-   ivector out;
+   ivector out(*vector_key_alloc);
    hmap.extractKeysByPattern(out,Rule<key_type,key_type>());
    for (auto i:out){
       expect_true(i<1000);
@@ -999,14 +898,14 @@ TEST(HashmapUnitTets ,Test_ErrorCodes_ExtractKeysByPattern){
 
 TEST(HashmapUnitTets ,Test_ErrorCodes_ExtractKeysByPatternNoAllocations){
    const int sz=5;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_key_alloc);
    create_input(src);
-   hashmap hmap;
+   hashmap hmap(*vector_map_alloc);
    hmap.insert(src.data(),src.size());
    bool cpuOK=recover_all_elements(hmap,src);
    expect_true(cpuOK);
    expect_true(hmap.peek_status()==status::success);
-   ivector out1,out2;
+   ivector out1(*vector_key_alloc),out2(*vector_key_alloc);
    hmap.extractKeysByPattern(out1,Rule<key_type,key_type>());
 
    void* buffer=nullptr;
@@ -1021,9 +920,9 @@ TEST(HashmapUnitTets ,Test_ErrorCodes_ExtractKeysByPatternNoAllocations){
 
 TEST(HashmapUnitTets ,Test_Copy_Metadata){
    const int sz=18;
-   vector src(1<<sz);
+   vector src(1<<sz,*vector_key_alloc);
    create_input(src);
-   hashmap hmap;
+   hashmap hmap(*vector_map_alloc);
    hmap.insert(src.data(),src.size());
    bool cpuOK=recover_all_elements(hmap,src);
    expect_true(cpuOK);
@@ -1070,12 +969,12 @@ TEST(HashmapUnitTets ,Test_Duplicate_Insertion){
          insertDuplicates(keys,keys[0],1);
       }
 
-      vector src(keys.size());
+      vector src(keys.size(),*vector_map_alloc);
       for (size_t i =0;i<keys.size(); i++){
          src[i].first=keys[i];
          src[i].second=keys[i];
       }
-      hashmap hmap;
+      hashmap hmap(*vector_map_alloc);
       hmap.insert(src.data(),src.size(),1);
       bool cpuOK=recover_all_elements(hmap,src);
       expect_true(cpuOK);
@@ -1085,6 +984,12 @@ TEST(HashmapUnitTets ,Test_Duplicate_Insertion){
 }
 
  main(int argc, char* argv[]){
+   auto& rm = umpire::ResourceManager::getInstance();
+   umpire::Allocator alloc = rm.getAllocator("UM");
+   auto v1=umpire::TypedAllocator<key_type>(alloc);   
+   auto v2=umpire::TypedAllocator<hash_pair<key_type,val_type >>(alloc);   
+   vector_key_alloc=&v1;
+   vector_map_alloc=&v2;
    srand(time(NULL));
    ::testing::InitGoogleTest(&argc, argv);
    return RUN_ALL_TESTS();

@@ -45,31 +45,40 @@ namespace Hashinator {
 
 #ifndef HASHINATOR_CPU_ONLY_MODE
 template <typename T>
-using DefaultMetaAllocator = split::split_unified_allocator<T>;
+using DefaultAllocator = split::split_unified_allocator<T>;
 #define DefaultHasher                                                                                                  \
    Hashers::Hasher<KEY_TYPE, VAL_TYPE, HashFunction, EMPTYBUCKET, TOMBSTONE, defaults::WARPSIZE,                       \
                    defaults::elementsPerWarp>
 #else
 template <typename T>
-using DefaultMetaAllocator = split::split_host_allocator<T>;
+using DefaultAllocator = std::allocator<T>;
 #define DefaultHasher void
 #endif
 
 using MapInfo = Hashinator::Info;
-template <typename KEY_TYPE, typename VAL_TYPE, KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
-          KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1, class HashFunction = HashFunctions::Fibonacci<KEY_TYPE>,
-          class DeviceHasher = DefaultHasher, class Meta_Allocator = DefaultMetaAllocator<MapInfo>>
+template <typename KEY_TYPE, typename VAL_TYPE, class Allocator = DefaultAllocator<hash_pair<KEY_TYPE,VAL_TYPE>>,
+          KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1, 
+          class HashFunction = HashFunctions::Fibonacci<KEY_TYPE>,class DeviceHasher = DefaultHasher>
 class Hashmap {
 
 private:
+   
+   constexpr size_t get_number_of_Ts_for_Map_Info()const noexcept{
+      constexpr size_t size_of_T=sizeof(hash_pair<KEY_TYPE,VAL_TYPE>);
+      constexpr size_t size_of_info=sizeof(MapInfo);
+      if constexpr (size_of_T>size_of_info){
+         return 1;
+      }
+      return std::ceil(size_of_info/size_of_T);
+   }
+   
    // CUDA device handle
    Hashmap* device_map;
-   split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>* device_buckets;
    //~CUDA device handle
 
    // Host members
-   split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>> buckets;
-   Meta_Allocator _metaAllocator; // Allocator used to allocate and deallocate memory for metadata
+   split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator> buckets;
+   Allocator _allocator; // Allocator used to allocate and deallocate memory for metadata
    MapInfo* _mapInfo;
    //~Host members
 
@@ -87,8 +96,6 @@ private:
    void preallocate_device_handles() {
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMalloc((void**)&device_map, sizeof(Hashmap)));
-      device_buckets = reinterpret_cast<split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>*>(
-          reinterpret_cast<char*>(device_map) + offsetof(Hashmap, buckets));
 #endif
    }
 
@@ -100,7 +107,6 @@ private:
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuFree(device_map));
       device_map = nullptr;
-      device_buckets = nullptr;
 #endif
    }
 
@@ -108,39 +114,62 @@ private:
    inline void set_status(status code) noexcept { _mapInfo->err = code; }
 
 public:
-   Hashmap() {
+   //By default we allocate enough space for 1<<5 (32) elements
+   Hashmap():_allocator(Allocator{}) {
       preallocate_device_handles();
-      _mapInfo = _metaAllocator.allocate(1);
+      _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
       *_mapInfo = MapInfo(5);
-      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>(
-          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()));
+      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
+          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator);
+#ifndef HASHINATOR_CPU_ONLY_MODE
+      SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
+#endif
+   };
+   
+   Hashmap(const Allocator& allocator):buckets(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
+          1 << 5, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),allocator)),_allocator(allocator){
+      preallocate_device_handles();
+      _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
+      *_mapInfo = MapInfo(5);
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
 #endif
    };
 
-   Hashmap(int sizepower) {
+   Hashmap(int sizepower):_allocator(Allocator{})  {
       preallocate_device_handles();
-      _mapInfo = _metaAllocator.allocate(1);
+      _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
       *_mapInfo = MapInfo(sizepower);
-      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>(
-          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()));
+      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
+          1 << _mapInfo->sizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator);
+      #ifndef HASHINATOR_CPU_ONLY_MODE
+      SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
+#endif
+   };
+
+   Hashmap(int sizepower,const Allocator& allocator):buckets(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
+          1 << sizepower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),allocator)),_allocator(allocator){
+      preallocate_device_handles();
+      _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
+      *_mapInfo = MapInfo(sizepower);
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
 #endif
    };
 
-   Hashmap(const Hashmap<KEY_TYPE, VAL_TYPE>& other) {
+   Hashmap(const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& other) {
+      _allocator=other._allocator;
       preallocate_device_handles();
-      _mapInfo = _metaAllocator.allocate(1);
+      _mapInfo = reinterpret_cast<MapInfo*>(_allocator.allocate(get_number_of_Ts_for_Map_Info()));
       *_mapInfo = *(other._mapInfo);
       buckets = other.buckets;
 #ifndef HASHINATOR_CPU_ONLY_MODE
       SPLIT_CHECK_ERR(split_gpuMemcpy(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice));
 #endif
    };
-
-   Hashmap(Hashmap<KEY_TYPE, VAL_TYPE>&& other) {
+   
+   Hashmap(Hashmap<KEY_TYPE, VAL_TYPE,Allocator>&& other) {
+      _allocator=other._allocator;
       preallocate_device_handles();
       _mapInfo = other._mapInfo;
       other._mapInfo = nullptr;
@@ -150,7 +179,8 @@ public:
 #endif
    };
 
-   Hashmap& operator=(const Hashmap<KEY_TYPE, VAL_TYPE>& other) {
+   //Allocator is not replaces with assignment operation
+   Hashmap& operator=(const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& other) {
       if (this == &other) {
          return *this;
       }
@@ -164,7 +194,7 @@ public:
 
 #ifndef HASHINATOR_CPU_ONLY_MODE
    /** Copy assign but using a provided stream */
-   void overwrite(const Hashmap<KEY_TYPE, VAL_TYPE>& other, split_gpuStream_t stream = 0) {
+   void overwrite(const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& other, split_gpuStream_t stream = 0) {
       if (this == &other) {
          return;
       }
@@ -176,11 +206,11 @@ public:
    }
 #endif
 
-   Hashmap& operator=(Hashmap<KEY_TYPE, VAL_TYPE>&& other) {
+   Hashmap& operator=(Hashmap<KEY_TYPE, VAL_TYPE,Allocator>&& other) {
       if (this == &other) {
          return *this;
       }
-      _metaAllocator.deallocate(_mapInfo, 1);
+      _allocator.deallocate(reinterpret_cast<hash_pair<KEY_TYPE,VAL_TYPE>*>(_mapInfo), get_number_of_Ts_for_Map_Info());
       _mapInfo = other._mapInfo;
       other._mapInfo = nullptr;
       buckets = std::move(other.buckets);
@@ -192,7 +222,7 @@ public:
 
    ~Hashmap() {
       deallocate_device_handles();
-      _metaAllocator.deallocate(_mapInfo, 1);
+      _allocator.deallocate(reinterpret_cast<hash_pair<KEY_TYPE,VAL_TYPE>*>(_mapInfo), get_number_of_Ts_for_Map_Info());
    };
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
@@ -239,8 +269,8 @@ public:
       if (newSizePower > 32) {
          throw std::out_of_range("Hashmap ran into rehashing catastrophe and exceeded 32bit buckets.");
       }
-      split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>> newBuckets(
-          1 << newSizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()));
+      split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator> newBuckets(
+          1 << newSizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator);
       _mapInfo->sizePower = newSizePower;
       int bitMask = (1 << _mapInfo->sizePower) - 1; // For efficient modulo of the array size
 
@@ -291,9 +321,12 @@ public:
 
       size_t priorFill = _mapInfo->fill;
       // Extract all valid elements
-      hash_pair<KEY_TYPE, VAL_TYPE>* validElements;
-      SPLIT_CHECK_ERR(split_gpuMallocAsync((void**)&validElements,
-                                           (_mapInfo->fill + 1) * sizeof(hash_pair<KEY_TYPE, VAL_TYPE>), s));
+      hash_pair<KEY_TYPE, VAL_TYPE>* validElements=nullptr;
+      const std::size_t alloc_size=_mapInfo->fill+1;
+      validElements=_allocator.allocate(alloc_size);
+      if (!validElements){
+         throw std::runtime_error("ERORR: Failed to allocate temporary buffer in device rehash");
+      }
       if constexpr (prefetches) {
          optimizeGPU(s);
          SPLIT_CHECK_ERR(split_gpuStreamSynchronize(s));
@@ -315,7 +348,7 @@ public:
       if (newSizePower == _mapInfo->sizePower && nValidElements == 0) {
          clear<prefetches>(targets::device, s, 1 << newSizePower);
          set_status((priorFill == _mapInfo->fill) ? status::success : status::fail);
-         split_gpuFreeAsync(validElements, s);
+         _allocator.deallocate(validElements,alloc_size); 
          return;
       }
       if (newSizePower == _mapInfo->sizePower) {
@@ -324,8 +357,8 @@ public:
          // DeviceHasher::reset_all(buckets.data(),_mapInfo, buckets.size(), s);
       } else {
          // Need new buckets
-         buckets = std::move(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>(
-             1 << newSizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE())));
+         buckets = std::move(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(
+             1 << newSizePower, hash_pair<KEY_TYPE, VAL_TYPE>(EMPTYBUCKET, VAL_TYPE()),_allocator));
          SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice, s));
          optimizeGPU(s);
       }
@@ -333,7 +366,7 @@ public:
       // Insert valid elements to now larger buckets
       insert(validElements, nValidElements, 1, s);
       set_status((priorFill == _mapInfo->fill) ? status::success : status::fail);
-      split_gpuFreeAsync(validElements, s);
+      _allocator.deallocate(validElements,alloc_size); 
       return;
    }
 #endif
@@ -492,7 +525,7 @@ public:
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
    void clear() {
-      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()});
+      buckets = split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()},_allocator); 
       *_mapInfo = MapInfo(_mapInfo->sizePower);
       return;
    }
@@ -502,7 +535,7 @@ public:
       switch (t) {
       case targets::host:
          buckets =
-             split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()});
+             split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>(1 << _mapInfo->sizePower, {EMPTYBUCKET, VAL_TYPE()},_allocator);
          *_mapInfo = MapInfo(_mapInfo->sizePower);
          break;
 
@@ -632,7 +665,6 @@ public:
       buckets.swap(other.buckets);
       std::swap(_mapInfo, other._mapInfo);
       std::swap(device_map, other.device_map);
-      std::swap(device_buckets, other.device_buckets);
    }
 
 #ifdef HASHINATOR_CPU_ONLY_MODE
@@ -680,11 +712,11 @@ public:
 
    // Iterator type. Iterates through all non-empty buckets.
    class iterator {
-      Hashmap<KEY_TYPE, VAL_TYPE>* hashtable;
+      Hashmap<KEY_TYPE, VAL_TYPE,Allocator>* hashtable;
       size_t index;
 
    public:
-      iterator(Hashmap<KEY_TYPE, VAL_TYPE>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
+      iterator(Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
 
       iterator& operator++() {
          index++;
@@ -715,11 +747,11 @@ public:
 
    // Const iterator.
    class const_iterator {
-      const Hashmap<KEY_TYPE, VAL_TYPE>* hashtable;
+      const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>* hashtable;
       size_t index;
 
    public:
-      explicit const_iterator(const Hashmap<KEY_TYPE, VAL_TYPE>& hashtable, size_t index)
+      explicit const_iterator(const Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& hashtable, size_t index)
           : hashtable(&hashtable), index(index) {}
       const_iterator& operator++() {
          index++;
@@ -1161,7 +1193,7 @@ public:
     *   hmap.extractPattern(elements,Rule<uint32_t,uint32_t>());
     * */
    template <bool prefetches = true, typename Rule>
-   size_t extractPattern(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>& elements, Rule rule,
+   size_t extractPattern(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>& elements, Rule rule,
                          split_gpuStream_t s = 0) {
       elements.resize(_mapInfo->fill + 1, true);
       if constexpr (prefetches) {
@@ -1188,18 +1220,18 @@ public:
       const size_t memory_for_pool = 8 * nBlocks * sizeof(uint32_t);
       split::tools::splitStackArena mPool(memory_for_pool, s);
       size_t retval =
-          split::tools::copy_if_raw<hash_pair<KEY_TYPE, VAL_TYPE>, Rule, defaults::MAX_BLOCKSIZE, defaults::WARPSIZE>(
+          split::tools::copy_if_raw<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator, Rule, defaults::MAX_BLOCKSIZE, defaults::WARPSIZE>(
               buckets, elements, rule, nBlocks, mPool, s);
       return retval;
    }
    template <typename Rule>
-   void extractPatternLoop(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>& elements, Rule rule,
+   void extractPatternLoop(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>& elements, Rule rule,
                            split_gpuStream_t s = 0) {
       // Extract elements matching the Pattern Rule(element)==true;
       split::tools::copy_if_loop<hash_pair<KEY_TYPE, VAL_TYPE>, Rule, defaults::MAX_BLOCKSIZE, defaults::WARPSIZE>(
-          *device_buckets, elements, rule, s);
+          device_map->buckets, elements, rule, s);
    }
-   void extractLoop(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>& elements, split_gpuStream_t s = 0) {
+   void extractLoop(split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>,Allocator>& elements, split_gpuStream_t s = 0) {
       // Extract all valid elements
       auto rule = [] __host__ __device__(const hash_pair<KEY_TYPE, VAL_TYPE>& kval) -> bool {
          return kval.first != EMPTYBUCKET && kval.first != TOMBSTONE;
@@ -1223,6 +1255,24 @@ public:
       }
       return elements.size();
    }
+   
+   template <typename KeyAlloc,bool prefetches = true, typename Rule>
+   size_t extractKeysByPattern(split::SplitVector<KEY_TYPE,KeyAlloc>& elements, Rule rule, split_gpuStream_t s = 0) {
+      elements.resize(_mapInfo->fill + 1, true);
+      if constexpr (prefetches) {
+         elements.optimizeGPU(s);
+      }
+      // Extract element **keys** matching the Pattern Rule(element)==true;
+      split::tools::copy_keys_if<hash_pair<KEY_TYPE, VAL_TYPE>, KEY_TYPE,Allocator,KeyAlloc, Rule,defaults::MAX_BLOCKSIZE,
+                                 defaults::WARPSIZE>(buckets, elements, rule, s);
+      // FIXME: there is an issue where paging to host occurs and following calls to hashmap operations take a hit.
+      // temp fix: call optimizeGPU() here
+      if constexpr (prefetches) {
+         optimizeGPU(s);
+      }
+      return elements.size();
+   }
+   
    template <bool prefetches = true, typename Rule>
    size_t extractKeysByPattern(split::SplitVector<KEY_TYPE>& elements, Rule rule, void* stack, size_t max_size,
                                split_gpuStream_t s = 0) {
@@ -1235,11 +1285,25 @@ public:
                                  defaults::WARPSIZE>(buckets, elements, rule, stack, max_size, s);
       return elements.size();
    }
+   
+   template <typename KeyAlloc, bool prefetches = true, typename Rule>
+   size_t extractKeysByPattern(split::SplitVector<KEY_TYPE,KeyAlloc>& elements, Rule rule, void* stack, size_t max_size,
+                               split_gpuStream_t s = 0) {
+      elements.resize(_mapInfo->fill + 1, true);
+      if constexpr (prefetches) {
+         elements.optimizeGPU(s);
+      }
+      // Extract element **keys** matching the Pattern Rule(element)==true;
+      split::tools::copy_keys_if<hash_pair<KEY_TYPE, VAL_TYPE>, KEY_TYPE,Allocator,KeyAlloc, Rule, defaults::MAX_BLOCKSIZE,
+                                 defaults::WARPSIZE>(buckets, elements, rule, stack, max_size, s);
+      return elements.size();
+   }
+   
    template <typename Rule>
    void extractKeysByPatternLoop(split::SplitVector<KEY_TYPE>& elements, Rule rule, split_gpuStream_t s = 0) {
       // Extract element **keys** matching the Pattern Rule(element)==true;
       split::tools::copy_if_keys_loop<hash_pair<KEY_TYPE, VAL_TYPE>, KEY_TYPE, Rule, defaults::MAX_BLOCKSIZE,
-                                      defaults::WARPSIZE>(*device_buckets, elements, rule, s);
+                                      defaults::WARPSIZE>(device_map->buckets, elements, rule, s);
    }
 
    template <bool prefetches = true>
@@ -1279,10 +1343,12 @@ public:
       // Allocate memory for overflown elements. So far this is the same size as our buckets but we can be better than
       // this
 
-      hash_pair<KEY_TYPE, VAL_TYPE>* overflownElements;
-      SPLIT_CHECK_ERR(split_gpuMallocAsync((void**)&overflownElements,
-                                           (1 << _mapInfo->sizePower) * sizeof(hash_pair<KEY_TYPE, VAL_TYPE>), s));
-
+      hash_pair<KEY_TYPE, VAL_TYPE>* overflownElements=nullptr;
+      const std::size_t alloc_size=_mapInfo->fill+1;
+      overflownElements=_allocator.allocate(alloc_size);
+      if (!overflownElements){
+         throw std::runtime_error("ERORR: Failed to allocate temporary buffer in tombstone cleaning");
+      }
       if constexpr (prefetches) {
          optimizeGPU(s);
       }
@@ -1310,7 +1376,7 @@ public:
       _mapInfo->currentMaxBucketOverflow = defaults::BUCKET_OVERFLOW;
 
       if (nOverflownElements == 0) {
-         SPLIT_CHECK_ERR(split_gpuFreeAsync(overflownElements, s));
+         _allocator.deallocate(overflownElements,alloc_size);
          return;
       }
       // If we do have overflown elements we put them back in the buckets
@@ -1319,7 +1385,7 @@ public:
 
       DeviceHasher::insert(overflownElements, buckets.data(), _mapInfo, nOverflownElements, s);
 
-      SPLIT_CHECK_ERR(split_gpuFreeAsync(overflownElements, s));
+      _allocator.deallocate(overflownElements,alloc_size);
       return;
    }
 
@@ -1427,9 +1493,7 @@ public:
       if constexpr (prefetches) {
          optimizeGPU(stream);
       }
-      // device_buckets = (split::SplitVector<hash_pair<KEY_TYPE, VAL_TYPE>>*)((char*)device_map + offsetof(Hashmap,
-      // buckets)); SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice,
-      // stream));
+      SPLIT_CHECK_ERR(split_gpuMemcpyAsync(device_map, this, sizeof(Hashmap), split_gpuMemcpyHostToDevice, stream));
       return device_map;
    }
 
@@ -1479,11 +1543,11 @@ public:
    class device_iterator {
    private:
       size_t index;
-      Hashmap<KEY_TYPE, VAL_TYPE>* hashtable;
+      Hashmap<KEY_TYPE, VAL_TYPE,Allocator>* hashtable;
 
    public:
       HASHINATOR_DEVICEONLY
-      device_iterator(Hashmap<KEY_TYPE, VAL_TYPE>& hashtable, size_t index) : index(index), hashtable(&hashtable) {}
+      device_iterator(Hashmap<KEY_TYPE, VAL_TYPE,Allocator>& hashtable, size_t index) : index(index), hashtable(&hashtable) {}
 
       HASHINATOR_DEVICEONLY
       size_t getIndex() { return index; }
