@@ -4,10 +4,21 @@
 #include <unordered_set>
 #include <random>
 #include "../../include/hashinator/hashinator.h"
+#ifndef NOPROFILE
+#ifdef __CUDACC__
 #include <nvToolsExt.h>
-#define PROFILE_START(msg)   nvtxRangePushA((msg))
+#define PROFILE_START(msg) nvtxRangePushA((msg))
 #define PROFILE_END() nvtxRangePop()
-constexpr int R = 50;
+#else
+#include <roctx.h>
+#define PROFILE_START(msg) roctxRangePush((msg))
+#define PROFILE_END() roctxRangePop()
+#endif
+#else
+#define PROFILE_START(msg)
+#define PROFILE_END()
+#endif
+constexpr int R = 10;
 
 using namespace std::chrono;
 using namespace Hashinator;
@@ -108,8 +119,6 @@ int main(int argc, char* argv[]){
    hashmap hmap(sz+1);
    int device;
    SPLIT_CHECK_ERR( split_gpuGetDevice(&device) );
-   hmap.memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   hmap.memAdvise(cudaMemAdviseSetAccessedBy,device);
    hmap.optimizeGPU();
    hmap.optimizeGPU();
    double t_insert={0};
@@ -117,8 +126,6 @@ int main(int argc, char* argv[]){
    double t_extract={0};
    double t_erase={0};
 
-   for (int i =0; i<R; i++){
-   vector cpu_src;
    key_vec cpu_keys;
    val_vec cpu_vals;
    generateNonDuplicatePairs(cpu_keys,cpu_vals,1<<sz);
@@ -137,23 +144,23 @@ int main(int argc, char* argv[]){
       hmap.optimizeGPU();
 
       PROFILE_START("insert");
-      t_insert+=timeMe(benchInsert,hmap,gpuKeys,gpuVals,sz);
-      cudaDeviceSynchronize();
+      t_insert += timeMe(benchInsert, hmap, gpuKeys, gpuVals, sz);
+      split_gpuDeviceSynchronize();
       PROFILE_END();
-   
+
       PROFILE_START("extract");
       t_extract+=timeMe(benchExtract,hmap,spare,sz);
-      cudaDeviceSynchronize();
+      split_gpuDeviceSynchronize();
       PROFILE_END();
-    
+
       PROFILE_START("retrieve");
       t_retrieve+=timeMe(benchRetrieve,hmap,gpuKeys,gpuVals,sz);
-      cudaDeviceSynchronize();
+      split_gpuDeviceSynchronize();
       PROFILE_END();
       
       PROFILE_START("erase");
       t_erase+=timeMe(benchErase,hmap,gpuKeys,gpuVals,sz);
-      cudaDeviceSynchronize();
+      split_gpuDeviceSynchronize();
       PROFILE_END();
       
       hmap.clear();
