@@ -126,21 +126,24 @@ int main(int argc, char* argv[]){
    double t_extract={0};
    double t_erase={0};
 
-   key_vec cpu_keys;
-   val_vec cpu_vals;
-   generateNonDuplicatePairs(cpu_keys,cpu_vals,1<<sz);
-   //std::cout<<"Generated "<<cpu_keys.size()<<" unique keys!"<<std::endl;
+
+   for (int i =0; i<R; i++){
+      vector cpu_src;
+      key_vec cpu_keys;
+      val_vec cpu_vals;
+      generateNonDuplicatePairs(cpu_keys,cpu_vals,1<<sz);
+      // std::cout<<"Generated "<<cpu_keys.size()<<" unique keys!"<<std::endl;
 
 
-   key_vec  spare;
-   spare.resize(1<<sz);
-   key_type* gpuKeys;
-   val_type* gpuVals;
-   SPLIT_CHECK_ERR( split_gpuMalloc((void **) &gpuKeys, (1<<sz)*sizeof(key_type)) );
-   SPLIT_CHECK_ERR( split_gpuMalloc((void **) &stack, bytes) );
-   SPLIT_CHECK_ERR( split_gpuMalloc((void **) &gpuVals, (1<<sz)*sizeof(val_type)) );
-   SPLIT_CHECK_ERR( split_gpuMemcpy(gpuKeys,cpu_keys.data(),(1<<sz)*sizeof(key_type),split_gpuMemcpyHostToDevice) );
-   SPLIT_CHECK_ERR( split_gpuMemcpy(gpuVals,cpu_vals.data(),(1<<sz)*sizeof(key_type),split_gpuMemcpyHostToDevice) );
+      key_vec  spare;
+      spare.resize(1<<sz);
+      key_type* gpuKeys;
+      val_type* gpuVals;
+      SPLIT_CHECK_ERR( split_gpuMalloc((void **) &gpuKeys, (1<<sz)*sizeof(key_type)) );
+      SPLIT_CHECK_ERR( split_gpuMalloc((void **) &stack, bytes) );
+      SPLIT_CHECK_ERR( split_gpuMalloc((void **) &gpuVals, (1<<sz)*sizeof(val_type)) );
+      SPLIT_CHECK_ERR( split_gpuMemcpy(gpuKeys,cpu_keys.data(),(1<<sz)*sizeof(key_type),split_gpuMemcpyHostToDevice) );
+      SPLIT_CHECK_ERR( split_gpuMemcpy(gpuVals,cpu_vals.data(),(1<<sz)*sizeof(key_type),split_gpuMemcpyHostToDevice) );
       hmap.optimizeGPU();
 
       PROFILE_START("insert");
