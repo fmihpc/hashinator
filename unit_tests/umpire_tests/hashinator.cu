@@ -983,7 +983,7 @@ TEST(HashmapUnitTets ,Test_Duplicate_Insertion){
    }
 }
 
- main(int argc, char* argv[]){
+int main(int argc, char* argv[]){
    auto& rm = umpire::ResourceManager::getInstance();
    umpire::Allocator alloc = rm.getAllocator("UM");
    auto v1=umpire::TypedAllocator<key_type>(alloc);   
