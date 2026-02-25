@@ -97,7 +97,8 @@ typedef struct{
    int_type num;
    int_type flag;
 } test_t;
-typedef split::SplitVector<test_t,customAllocator<test_t>> vector; 
+typedef split::SplitVector<test_t> vector;
+typedef split::SplitVector<test_t,customAllocator<test_t>> customAllocatorVector; 
 size_t count = 0;
 
 void print_vector(vector& v){
@@ -133,7 +134,7 @@ void fill_vec_lin(vector& v, size_t targetSize){
     }
 }
 
-bool checkFlags(const vector& v,const int_type target){
+bool checkFlags(const customAllocatorVector& v,const int_type target){
    for (const auto& i:v){
       if (i.flag!=target){return false;}
    }
@@ -146,8 +147,8 @@ bool run_test(int power){
    fill_vec(v,1<<power);
    auto predicate_on =[]__host__ __device__ (test_t element)->bool{ return element.flag == 1 ;};
    auto predicate_off =[]__host__ __device__ (test_t element)->bool{ return element.flag == 0 ;};
-   vector output1(v.size());
-   vector output2(v.size());
+   customAllocatorVector output1(v.size());
+   customAllocatorVector output2(v.size());
    split::tools::copy_if(v,output1,predicate_on);
    split::tools::copy_if(v,output2,predicate_off);
    bool sane1 = checkFlags(output1,1);
@@ -164,8 +165,8 @@ bool run_test_small(size_t size){
    fill_vec(v,size);
    auto predicate_on =[]__host__ __device__ (test_t element)->bool{ return element.flag == 1 ;};
    auto predicate_off =[]__host__ __device__ (test_t element)->bool{ return element.flag == 0 ;};
-   vector output1(v.size());
-   vector output2(v.size());
+   customAllocatorVector output1(v.size());
+   customAllocatorVector output2(v.size());
 #if 1
    split::tools::copy_if(v,output1,predicate_on);
    split::tools::copy_if(v,output2,predicate_off);
@@ -192,8 +193,8 @@ bool run_test_small_loop_variant(size_t size){
 
    auto predicate_on =[]__host__ __device__ (test_t element)->bool{ return element.flag == 1 ;};
    auto predicate_off =[]__host__ __device__ (test_t element)->bool{ return element.flag == 0 ;};
-   vector* output1=new vector(nextPow2(2*v->size()));
-   vector* output2=new vector(nextPow2(2*v->size()));
+   customAllocatorVector* output1=new customAllocatorVector(nextPow2(2*v->size()));
+   customAllocatorVector* output2=new customAllocatorVector(nextPow2(2*v->size()));
 
    split::tools::copy_if_loop(*v,*output1,predicate_on);
    split::tools::copy_if_loop(*v,*output2,predicate_off);
