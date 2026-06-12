@@ -13,10 +13,10 @@
 #define expect_eq EXPECT_EQ
 #define N 1<<12
 
-typedef split::SplitVector<int> vec ;
+typedef split::SplitVector<int,std::allocator<int>> vec ;
 typedef std::vector<int> stdvec ;
-typedef split::SplitVector<split::SplitVector<int>> vec2d ;
-typedef split::SplitVector<int>::iterator   split_iterator;
+typedef split::SplitVector<split::SplitVector<int,std::allocator<int>>,std::allocator<split::SplitVector<int,std::allocator<int>>>> vec2d ;
+typedef split::SplitVector<int,std::allocator<int>>::iterator   split_iterator;
 
 
 
@@ -228,7 +228,7 @@ TEST(Vector_Functionality , Push_Back_2){
 
 TEST(Vector_Functionality , Insert_1_Element){
    {
-      split::SplitVector<int> a{1,2,3,4,5,6,7,8,9,10};
+      vec a{1,2,3,4,5,6,7,8,9,10};
       auto s0=a.size(); auto c0=a.capacity();
       auto it(a.begin());
       auto it2=a.insert(it,-1);
@@ -282,7 +282,7 @@ TEST(Vector_Functionality , Insert_1_Element){
 TEST(Vector_Functionality , Insert_Many_Elements){
 
    {
-      split::SplitVector<int> a{1,2,3,4,5,6,7,8,9,10};
+      vec a{1,2,3,4,5,6,7,8,9,10};
       auto s0=a.size(); auto c0=a.capacity();
       auto it(a.begin());
       auto it2=a.insert(it,10,-1);
@@ -330,9 +330,9 @@ TEST(Vector_Functionality , Insert_Many_Elements){
 TEST(Vector_Functionality , Insert_Range_Based){
 
    {
-      split::SplitVector<int> a{1,2,3,4,5,6,7,8,9,10};
+      vec a{1,2,3,4,5,6,7,8,9,10};
       auto backup(a);
-      split::SplitVector<int> b{-1,-2,-3,-4,-5,-6,-7,-8,-9,-10};
+      vec b{-1,-2,-3,-4,-5,-6,-7,-8,-9,-10};
       auto s0=a.size();
       auto it(a.end());
       auto it_b0(b.begin());
@@ -350,9 +350,9 @@ TEST(Vector_Functionality , Insert_Range_Based){
 
 
    {
-      split::SplitVector<int> a{1,2,3,4,5,6,7,8,9,10};
+      vec a{1,2,3,4,5,6,7,8,9,10};
       auto backup(a);
-      split::SplitVector<int> b{-1,-2,-3,-4,-5,-6,-7,-8,-9,-10};
+      vec b{-1,-2,-3,-4,-5,-6,-7,-8,-9,-10};
       auto s0=a.size();
       auto it(a.end());
       auto it_b0(b.begin());
@@ -369,16 +369,16 @@ TEST(Vector_Functionality , Insert_Range_Based){
 
 
 TEST(Vector_Functionality , Erase_Single){
-      split::SplitVector<int> a{1,2,3,4,5,6,7,8,9,10};
-      split::SplitVector<int> b{1,2,3,5,6,7,8,9,10};
+      vec a{1,2,3,4,5,6,7,8,9,10};
+      vec b{1,2,3,5,6,7,8,9,10};
       split_iterator it0=&a[3];
       a.erase(it0);
       expect_true(a==b);
 }
 
 TEST(Vector_Functionality , Erase_Range){
-      split::SplitVector<int> a{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-      split::SplitVector<int> b{0,1,7,8,9,10,11,12,13,14};
+      vec a{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+      vec b{0,1,7,8,9,10,11,12,13,14};
       split_iterator it0=&a[2];
       split_iterator it1=&a[7];
       a.erase(it0,it1);

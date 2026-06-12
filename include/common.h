@@ -76,6 +76,7 @@ inline bool isDeviceAccessible(void* ptr){
     }
     return true;
 #endif
+  return false;
 }
 
 /**
