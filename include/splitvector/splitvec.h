@@ -154,6 +154,11 @@ private:
     */
    HOSTONLY T* _allocate_and_construct(size_t n, const T& val) {
       T* _ptr = _allocator.allocate(n);
+      #if defined(__HIP__) && !defined(SPLIT_CPU_ONLY_MODE) // On AMD devices, set unified memory as coarse-grained.
+      int device;
+      SPLIT_CHECK_ERR(split_gpuGetDevice(&device));
+      SPLIT_CHECK_ERR(split_gpuMemAdvise(_ptr, n*sizeof(T), hipMemAdviseSetCoarseGrain,device));
+      #endif
       for (size_t i = 0; i < n; i++) {
          _allocator.construct(&_ptr[i], val);
       }
@@ -170,6 +175,11 @@ private:
       size_t* _ptr = (size_t*)_allocator.allocate_raw(sizeof(size_t));
       assert(_ptr);
       *_ptr = val;
+      #if defined(__HIP__) && !defined(SPLIT_CPU_ONLY_MODE) // On AMD devices, set unified memory as coarse-grained.
+      int device;
+      SPLIT_CHECK_ERR(split_gpuGetDevice(&device));
+      SPLIT_CHECK_ERR(split_gpuMemAdvise(_ptr, sizeof(size_t), hipMemAdviseSetCoarseGrain,device));
+      #endif
       return _ptr;
    }
 
