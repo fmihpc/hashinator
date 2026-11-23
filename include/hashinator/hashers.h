@@ -34,7 +34,7 @@ namespace Hashinator {
 namespace Hashers {
 
 template <typename KEY_TYPE, typename VAL_TYPE, class HashFunction,
-          KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(), KEY_TYPE TOMBSTONE = EMPTYBUCKET = 1,
+          KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(), KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
           int WARP = defaults::WARPSIZE, int elementsPerWarp = 1>
 class Hasher {
 
