@@ -430,7 +430,8 @@ public:
          return *this;
       }
 
-      _deallocate_and_destroy(capacity(), _data);
+      // Free _size and _capacity too
+      _deallocate();
 #ifndef SPLIT_CPU_ONLY_MODE
       if (d_vec) {
          SPLIT_CHECK_ERR(split_gpuFree(d_vec));
@@ -446,6 +447,7 @@ public:
       other._data = nullptr;
       other._size = nullptr;
       other._capacity = nullptr;
+      other.d_vec = nullptr; // Otherwise both destructors free the same device copy.
       return *this;
    }
 
