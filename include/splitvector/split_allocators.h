@@ -24,6 +24,11 @@
 #include "archMacros.h"
 #include "gpu_wrappers.h"
 #include <cassert>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+#include <new>
+#include <utility>
 namespace split {
 
 #ifndef SPLIT_CPU_ONLY_MODE

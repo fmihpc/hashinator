@@ -32,6 +32,7 @@
 #pragma once
 #include "../common.h"
 #include "gpu_wrappers.h"
+#include "splitvec.h"
 #define NUM_BANKS 32 // TODO depends on device
 #define LOG_NUM_BANKS 5
 #define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)
